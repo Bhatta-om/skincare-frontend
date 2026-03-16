@@ -2,8 +2,10 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -39,7 +41,7 @@ api.interceptors.response.use(
         if (!refresh) throw new Error('No refresh token')
 
         const res = await axios.post(
-          'http://127.0.0.1:8000/api/users/token/refresh/',
+          `${BASE_URL}/users/token/refresh/`,
           { refresh }
         )
 
@@ -74,7 +76,6 @@ api.interceptors.response.use(
     } else if (status === 500) {
       toast.error('Server error. Please try again later.')
     } else if (status === 404 && !original?.url?.includes('/users/')) {
-      // 404 — user endpoints मा आफ्नै error handling छ
       toast.error('Resource not found.')
     }
 
