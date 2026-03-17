@@ -10,6 +10,7 @@ const navItems = [
   { path: '/admin/products',       label: 'Products',    icon: '🧴' },
   { path: '/admin/categories',     label: 'Categories',  icon: '📂' },
   { path: '/admin/products/stats', label: 'Stock Alerts',icon: '⚠️' },
+  { path: '/admin/bulk-import', label: 'Bulk Import', icon: '📤' },
 ]
 
 export default function AdminLayout({ children }) {
