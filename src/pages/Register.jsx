@@ -1,13 +1,13 @@
 // src/pages/Register.jsx — 100% Professional Split Layout
 import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GoogleLogin } from '@react-oauth/google'
+import { useGoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 
 export default function Register() {
-  const navigate        = useNavigate()
-  const { refreshUser } = useAuth()
+  const navigate                      = useNavigate()
+  const { refreshUser, loginWithTokens } = useAuth()
 
   const [step, setStep]   = useState('register')
   const [email, setEmail] = useState('')
@@ -17,6 +17,7 @@ export default function Register() {
   })
   const [errors, setErrors]           = useState({})
   const [loading, setLoading]         = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [showPass, setShowPass]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -45,20 +46,42 @@ export default function Register() {
   }
   const strength = getStrength(form.password)
   const strengthMeta = [
-    { label:'Very weak', color:'bg-red-400',    text:'text-red-500'    },
-    { label:'Weak',      color:'bg-orange-400',  text:'text-orange-500' },
-    { label:'Good',      color:'bg-yellow-400',  text:'text-yellow-600' },
-    { label:'Strong',    color:'bg-green-500',   text:'text-green-600'  },
+    { label:'Very weak', color:'bg-red-400',   text:'text-red-500'    },
+    { label:'Weak',      color:'bg-orange-400', text:'text-orange-500' },
+    { label:'Good',      color:'bg-yellow-400', text:'text-yellow-600' },
+    { label:'Strong',    color:'bg-green-500',  text:'text-green-600'  },
   ]
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const res = await api.post('/users/google/', { token: credentialResponse.credential })
-      localStorage.setItem('access_token',  res.data.tokens.access)
-      localStorage.setItem('refresh_token', res.data.tokens.refresh)
-      await refreshUser(); navigate('/')
-    } catch { setErrors({ general: 'Google sign up failed.' }) }
-  }
+  // ── Google Signup ─────────────────────────────────────────
+  const googleSignup = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGoogleLoading(true)
+      setErrors({})
+      try {
+        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        }).then(r => r.json())
+
+        const res = await api.post('/users/google/', {
+          token:      tokenResponse.access_token,
+          email:      userInfo.email,
+          first_name: userInfo.given_name  || '',
+          last_name:  userInfo.family_name || '',
+        })
+
+        loginWithTokens(res.data.tokens.access, res.data.tokens.refresh)
+        await refreshUser()
+        navigate('/')
+      } catch (err) {
+        const msg = err.response?.data?.error || 'Google sign up failed. Please try again.'
+        setErrors({ general: msg })
+      } finally {
+        setGoogleLoading(false)
+      }
+    },
+    onError: () => setErrors({ general: 'Google sign up cancelled or failed.' }),
+    prompt: 'select_account',
+  })
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -71,9 +94,12 @@ export default function Register() {
     setLoading(true); setErrors({})
     try {
       await api.post('/users/register/', {
-        first_name: form.first_name, last_name: form.last_name,
-        email: form.email, password: form.password,
-        confirm_password: form.confirm_password, phone: form.phone,
+        first_name:       form.first_name,
+        last_name:        form.last_name,
+        email:            form.email,
+        password:         form.password,
+        confirm_password: form.confirm_password,
+        phone:            form.phone,
       })
       setEmail(form.email); setStep('otp'); setTimer(60)
     } catch (err) {
@@ -111,8 +137,7 @@ export default function Register() {
     try {
       const res = await api.post('/users/verify-otp/', { email, otp: code })
       if (res.data.tokens) {
-        localStorage.setItem('access_token',  res.data.tokens.access)
-        localStorage.setItem('refresh_token', res.data.tokens.refresh)
+        loginWithTokens(res.data.tokens.access, res.data.tokens.refresh)
       }
       await refreshUser(); navigate('/')
     } catch (err) {
@@ -133,7 +158,6 @@ export default function Register() {
   const sharedStyles = `
     @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
     @keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    @keyframes pulse2  { 0%,100%{opacity:.6} 50%{opacity:1} }
     .animate-fadeUp { animation:fadeUp .4s ease forwards }
     .animate-float  { animation:float 3s ease-in-out infinite }
     .input-field {
@@ -146,7 +170,7 @@ export default function Register() {
     .input-field.success { border-color:#86efac; background:#f0fdf4 }
   `
 
-  // ── Left panel (shared) ──
+  // ── Left panel ──────────────────────────────────────────
   const LeftPanel = () => (
     <div className="hidden lg:flex lg:w-[48%] bg-linear-to-br from-purple-700 via-purple-600 to-pink-500 relative overflow-hidden flex-col justify-between p-12">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -167,7 +191,6 @@ export default function Register() {
         <p className="text-purple-100 text-lg leading-relaxed mb-8 max-w-sm">
           Join thousands who've found their perfect skincare routine with AI-powered analysis.
         </p>
-        {/* Feature list */}
         <div className="space-y-3">
           {[
             '🔬 Free AI skin type analysis',
@@ -209,7 +232,6 @@ export default function Register() {
               <div className="lg:hidden text-center mb-8">
                 <Link to="/" className="text-2xl font-black text-purple-600">✨ SkinCare</Link>
               </div>
-
               <div className="inline-flex items-center justify-center w-20 h-20 bg-linear-to-br from-purple-100 to-pink-100 rounded-3xl mb-5 text-4xl">
                 📩
               </div>
@@ -233,7 +255,7 @@ export default function Register() {
                 ))}
               </div>
 
-              {otpError && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">⚠️ {otpError}</div>}
+              {otpError    && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">⚠️ {otpError}</div>}
               {resendMsg === 'success' && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4">✅ New OTP sent!</div>}
               {resendMsg === 'error'   && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">❌ Failed to resend.</div>}
 
@@ -271,7 +293,6 @@ export default function Register() {
       <div className="min-h-screen flex">
         <LeftPanel />
 
-        {/* Right — Form */}
         <div className="flex-1 flex flex-col justify-center items-center px-6 py-10 bg-white overflow-y-auto">
           <div className="w-full max-w-105 animate-fadeUp">
 
@@ -287,15 +308,22 @@ export default function Register() {
               </p>
             </div>
 
-            {/* Google */}
-            <div className="mb-5">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setErrors({ general: 'Google sign up failed.' })}
-                useOneTap={false} shape="rectangular" size="large"
-                width="420" text="signup_with" logo_alignment="left" prompt="consent"
-              />
-            </div>
+            {/* Google Signup Button */}
+            <button
+              type="button"
+              onClick={() => googleSignup()}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50/40 text-gray-700 font-semibold py-3.5 rounded-2xl transition-all mb-5 disabled:opacity-50">
+              {googleLoading
+                ? <svg className="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                : <svg width="18" height="18" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                  </svg>}
+              <span className="text-sm">{googleLoading ? 'Signing up...' : 'Continue with Google'}</span>
+            </button>
 
             <div className="flex items-center gap-3 mb-5">
               <div className="flex-1 h-px bg-gray-100"/>
@@ -305,7 +333,8 @@ export default function Register() {
 
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-4 flex gap-2 items-center">
-                <span className="text-red-400">⚠️</span><span className="text-red-700 text-sm">{errors.general}</span>
+                <span className="text-red-400">⚠️</span>
+                <span className="text-red-700 text-sm">{errors.general}</span>
               </div>
             )}
             {errors.email?.toLowerCase().includes('already') && (
@@ -351,9 +380,11 @@ export default function Register() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
                 <div className="relative">
-                  <input type={showPass ? 'text' : 'password'} name="password" value={form.password} onChange={handleChange} placeholder="Create a strong password" required
+                  <input type={showPass ? 'text' : 'password'} name="password" value={form.password} onChange={handleChange}
+                    placeholder="Create a strong password" required
                     className={`input-field pr-11 ${errors.password ? 'error' : ''}`} />
-                  <button type="button" onClick={() => setShowPass(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 transition-colors">
+                  <button type="button" onClick={() => setShowPass(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 transition-colors">
                     {showPass
                       ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
                       : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>}
@@ -372,13 +403,15 @@ export default function Register() {
                 {errors.password && <p className="text-red-500 text-xs mt-1">⚠️ {errors.password}</p>}
               </div>
 
-              {/* Confirm */}
+              {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm password</label>
                 <div className="relative">
-                  <input type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password} onChange={handleChange} placeholder="Repeat your password" required
+                  <input type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password}
+                    onChange={handleChange} placeholder="Repeat your password" required
                     className={`input-field pr-11 ${errors.confirm_password ? 'error' : form.confirm_password && form.confirm_password === form.password ? 'success' : ''}`} />
-                  <button type="button" onClick={() => setShowConfirm(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 transition-colors">
+                  <button type="button" onClick={() => setShowConfirm(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 transition-colors">
                     {showConfirm
                       ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
                       : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>}
@@ -400,7 +433,9 @@ export default function Register() {
 
             <p className="text-center text-xs text-gray-400 mt-5">
               By registering, you agree to our{' '}
-              <span className="underline cursor-pointer hover:text-gray-600">Terms</span> &{' '}
+              <span className="underline cursor-pointer hover:text-gray-600">Terms</span> &{' '}cls
+              ]
+              
               <span className="underline cursor-pointer hover:text-gray-600">Privacy Policy</span>
             </p>
           </div>
