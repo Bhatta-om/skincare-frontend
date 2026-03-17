@@ -1,6 +1,6 @@
 // src/pages/admin/AdminProductForm.jsx
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../api/axios'
 import AdminLayout from './AdminLayout'
 import { getProductImageUrl } from '../../utils/productImage'
@@ -17,51 +17,51 @@ const Field = ({ label, error, children }) => (
   </div>
 )
 
-const inputCls = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
+const inputCls  = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
 const selectCls = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500"
 
 export default function AdminProductForm() {
-  const { slug }    = useParams()
-  const navigate    = useNavigate()
-  const isEdit      = Boolean(slug)
+  const { slug } = useParams()
+  const navigate = useNavigate()
+  const isEdit   = Boolean(slug)
 
   const [categories, setCategories] = useState([])
   const [loading, setLoading]       = useState(false)
   const [fetching, setFetching]     = useState(isEdit)
   const [errors, setErrors]         = useState({})
   const [message, setMessage]       = useState({ text: '', type: '' })
-
-  // Image previews
-  const [previews, setPreviews] = useState({ image: null, image_2: null, image_3: null })
+  const [previews, setPreviews]     = useState({ image: null, image_2: null, image_3: null })
 
   const [form, setForm] = useState({
-    name:               '',
-    brand:              '',
-    category:           '',
-    description:        '',
-    ingredients:        '',
-    price:              '',
-    discount_percent:   '0',
-    suitable_skin_type: 'all',
-    skin_concern:       'general',
-    min_age:            '13',
-    max_age:            '65',
-    gender:             'unisex',
-    stock:              '0',
-    low_stock_threshold:'10',
-    is_available:       true,
-    is_featured:        false,
-    image:              null,
-    image_2:            null,
-    image_3:            null,
+    name:                '',
+    brand:               '',
+    category:            '',
+    description:         '',
+    ingredients:         '',
+    price:               '',
+    discount_percent:    '0',
+    suitable_skin_type:  'all',
+    skin_concern:        'general',
+    min_age:             '13',
+    max_age:             '65',
+    gender:              'unisex',
+    stock:               '0',
+    low_stock_threshold: '10',
+    is_available:        true,
+    is_featured:         false,
+    image:               null,
+    image_2:             null,
+    image_3:             null,
   })
 
   // Fetch categories
-  useEffect(() => {
+  const fetchCategories = () => {
     api.get('/products/categories/').then(res => {
       setCategories(res.data.results || res.data || [])
     })
-  }, [])
+  }
+
+  useEffect(() => { fetchCategories() }, [])
 
   // Fetch product if editing
   useEffect(() => {
@@ -70,27 +70,26 @@ export default function AdminProductForm() {
       .then(res => {
         const p = res.data.product || res.data
         setForm({
-          name:               p.name || '',
-          brand:              p.brand || '',
-          category:           p.category?.id || '',
-          description:        p.description || '',
-          ingredients:        p.ingredients || '',
-          price:              p.price || '',
-          discount_percent:   p.discount_percent || '0',
-          suitable_skin_type: p.suitable_skin_type || 'all',
-          skin_concern:       p.skin_concern || 'general',
-          min_age:            p.min_age || '13',
-          max_age:            p.max_age || '65',
-          gender:             p.gender || 'unisex',
-          stock:              p.stock || '0',
-          low_stock_threshold:p.low_stock_threshold || '10',
-          is_available:       p.is_available ?? true,
-          is_featured:        p.is_featured ?? false,
-          image:              null,
-          image_2:            null,
-          image_3:            null,
+          name:                p.name || '',
+          brand:               p.brand || '',
+          category:            p.category?.id || '',
+          description:         p.description || '',
+          ingredients:         p.ingredients || '',
+          price:               p.price || '',
+          discount_percent:    p.discount_percent || '0',
+          suitable_skin_type:  p.suitable_skin_type || 'all',
+          skin_concern:        p.skin_concern || 'general',
+          min_age:             p.min_age || '13',
+          max_age:             p.max_age || '65',
+          gender:              p.gender || 'unisex',
+          stock:               p.stock || '0',
+          low_stock_threshold: p.low_stock_threshold || '10',
+          is_available:        p.is_available ?? true,
+          is_featured:         p.is_featured ?? false,
+          image:               null,
+          image_2:             null,
+          image_3:             null,
         })
-        // Show existing images as previews
         if (p.image)   setPreviews(prev => ({ ...prev, image:   getProductImageUrl(p.image) }))
         if (p.image_2) setPreviews(prev => ({ ...prev, image_2: getProductImageUrl(p.image_2) }))
         if (p.image_3) setPreviews(prev => ({ ...prev, image_3: getProductImageUrl(p.image_3) }))
@@ -119,11 +118,11 @@ export default function AdminProductForm() {
 
   const validate = () => {
     const errs = {}
-    if (!form.name.trim())     errs.name     = 'Name is required'
-    if (!form.brand.trim())    errs.brand    = 'Brand is required'
-    if (!form.category)        errs.category = 'Category is required'
-    if (!form.price)           errs.price    = 'Price is required'
-    if (!isEdit && !form.image) errs.image   = 'Main image is required'
+    if (!form.name.trim())      errs.name     = 'Name is required'
+    if (!form.brand.trim())     errs.brand    = 'Brand is required'
+    if (!form.category)         errs.category = 'Category is required'
+    if (!form.price)            errs.price    = 'Price is required'
+    if (!isEdit && !form.image) errs.image    = 'Main image is required'
     return errs
   }
 
@@ -136,7 +135,6 @@ export default function AdminProductForm() {
 
     Object.entries(form).forEach(([key, val]) => {
       if (val === null || val === undefined) return
-      // Skip image fields if no new file selected
       if (['image', 'image_2', 'image_3'].includes(key) && !val) return
       formData.append(key, val)
     })
@@ -170,7 +168,7 @@ export default function AdminProductForm() {
   if (fetching) return (
     <AdminLayout>
       <div className="flex justify-center py-16">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
       </div>
     </AdminLayout>
   )
@@ -216,11 +214,26 @@ export default function AdminProductForm() {
                 </Field>
               </div>
 
+              {/* Category with Quick Add button */}
               <Field label="Category *" error={errors.category}>
-                <select name="category" value={form.category} onChange={handleChange} className={selectCls}>
-                  <option value="">Select category</option>
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="flex gap-2">
+                  <select name="category" value={form.category} onChange={handleChange} className={selectCls}>
+                    <option value="">Select category</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <Link to="/admin/categories"
+                    className="shrink-0 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-1 whitespace-nowrap border border-gray-600">
+                    <span>+</span> New
+                  </Link>
+                </div>
+                {categories.length === 0 && (
+                  <p className="text-yellow-500 text-xs mt-1">
+                    ⚠️ No categories found.{' '}
+                    <Link to="/admin/categories" className="underline hover:text-yellow-400">
+                      Add categories first →
+                    </Link>
+                  </p>
+                )}
               </Field>
 
               <Field label="Description" error={errors.description}>
@@ -294,7 +307,6 @@ export default function AdminProductForm() {
             {/* Images */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
               <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Images</h3>
-
               {[
                 { field: 'image',   label: 'Main Image *' },
                 { field: 'image_2', label: 'Image 2' },
@@ -328,7 +340,6 @@ export default function AdminProductForm() {
             {/* Settings */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
               <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Settings</h3>
-
               {[
                 { name: 'is_available', label: 'Available for sale', desc: 'Show in store' },
                 { name: 'is_featured',  label: 'Featured product',   desc: 'Show on homepage' },

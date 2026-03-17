@@ -1,20 +1,21 @@
 // src/pages/admin/AdminLayout.jsx
 import React, { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 const navItems = [
-  { path: '/admin',                label: 'Dashboard',     icon: '📊' },
-  { path: '/admin/orders',         label: 'Orders',        icon: '📦' },
-  { path: '/admin/users',          label: 'Users',         icon: '👥' },
-  { path: '/admin/products',       label: 'Products',      icon: '🧴' },
-  { path: '/admin/products/stats', label: 'Stock Alerts',  icon: '⚠️' },
+  { path: '/admin',                label: 'Dashboard',   icon: '📊' },
+  { path: '/admin/orders',         label: 'Orders',      icon: '📦' },
+  { path: '/admin/users',          label: 'Users',       icon: '👥' },
+  { path: '/admin/products',       label: 'Products',    icon: '🧴' },
+  { path: '/admin/categories',     label: 'Categories',  icon: '📂' },
+  { path: '/admin/products/stats', label: 'Stock Alerts',icon: '⚠️' },
 ]
 
 export default function AdminLayout({ children }) {
-  const { user, logout }          = useAuth()
-  const location                  = useLocation()
-  const [collapsed, setCollapsed] = useState(false)
+  const { user, logout }            = useAuth()
+  const location                    = useLocation()
+  const [collapsed, setCollapsed]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isActive = (path) => {

@@ -27,6 +27,7 @@ import AdminUsers       from './pages/admin/AdminUsers'
 import AdminProducts    from './pages/admin/AdminProducts'
 import AdminProductList from './pages/admin/AdminProductList'
 import AdminProductForm from './pages/admin/AdminProductForm'
+import AdminCategories  from './pages/admin/AdminCategories'
 
 // ── Guards ────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ function App() {
         <Route path="/admin/products/stats"      element={<AdminRoute><AdminProducts /></AdminRoute>} />
         <Route path="/admin/products/add"        element={<AdminRoute><AdminProductForm /></AdminRoute>} />
         <Route path="/admin/products/edit/:slug" element={<AdminRoute><AdminProductForm /></AdminRoute>} />
+        <Route path="/admin/categories"          element={<AdminRoute><AdminCategories /></AdminRoute>} />
 
       </Routes>
     </BrowserRouter>
