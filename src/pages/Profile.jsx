@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import {
   User, ShoppingBag, DollarSign, Lock, Eye, EyeOff,
   Shield, CheckCircle, AlertCircle, LogOut,
-  Edit3, Calendar,
+  Edit3,
 } from 'lucide-react'
 
 const PROFILE_CSS = `
@@ -53,6 +53,36 @@ const getStrength = (pw) => {
   return { ...meta[s - 1], score: s }
 }
 
+// ── Moved OUTSIDE Profile to prevent re-mount on every keystroke ──
+const PasswordField = ({ name, label, value, onChange, show, onToggle }) => (
+  <div>
+    <label className="input-label">{label}</label>
+    <div style={{ position: 'relative', marginTop: '8px' }}>
+      <input
+        type={show ? 'text' : 'password'}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder="••••••••"
+        className="input-luxury"
+        style={{ paddingRight: '44px' }}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          position: 'absolute', right: '14px', top: '50%',
+          transform: 'translateY(-50%)', background: 'none',
+          border: 'none', cursor: 'pointer', color: '#AA9688',
+          display: 'flex', padding: 0,
+        }}
+      >
+        {show ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
+      </button>
+    </div>
+  </div>
+)
+
 const SectionCard = ({ title, icon, subtitle, children }) => (
   <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', overflow: 'hidden' }}>
     <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -68,13 +98,13 @@ const SectionCard = ({ title, icon, subtitle, children }) => (
 
 export default function Profile() {
   const { user, logout } = useAuth()
-  const [form,      setForm]      = useState({ first_name: '', last_name: '', phone: '' })
-  const [pwForm,    setPwForm]    = useState({ old_password: '', new_password: '', confirm_password: '' })
-  const [loading,   setLoading]   = useState(false)
-  const [pwLoading, setPwLoading] = useState(false)
+  const [form,         setForm]         = useState({ first_name: '', last_name: '', phone: '' })
+  const [pwForm,       setPwForm]       = useState({ old_password: '', new_password: '', confirm_password: '' })
+  const [loading,      setLoading]      = useState(false)
+  const [pwLoading,    setPwLoading]    = useState(false)
   const [statsLoading, setStatsLoading] = useState(true)
-  const [stats,     setStats]     = useState(null)
-  const [showPw,    setShowPw]    = useState({ old: false, new: false, confirm: false })
+  const [stats,        setStats]        = useState(null)
+  const [showPw,       setShowPw]       = useState({ old: false, new: false, confirm: false })
 
   useEffect(() => {
     if (user) setForm({ first_name: user.first_name || '', last_name: user.last_name || '', phone: user.phone || '' })
@@ -113,7 +143,9 @@ export default function Profile() {
     setPwLoading(true)
     try {
       await api.post('/users/change-password/', {
-        old_password: pwForm.old_password, new_password: pwForm.new_password, confirm_new_password: pwForm.confirm_password,
+        old_password: pwForm.old_password,
+        new_password: pwForm.new_password,
+        confirm_new_password: pwForm.confirm_password,
       })
       toast.success('Password changed. Please login again.', { duration: 4000 })
       setTimeout(() => logout(), 2000)
@@ -126,21 +158,6 @@ export default function Profile() {
 
   const strength        = getStrength(pwForm.new_password)
   const isSameAsCurrent = pwForm.new_password && pwForm.new_password === pwForm.old_password
-
-  const PasswordField = ({ name, label, value, show, onToggle }) => (
-    <div>
-      <label className="input-label">{label}</label>
-      <div style={{ position: 'relative', marginTop: '8px' }}>
-        <input type={show ? 'text' : 'password'} name={name} value={value}
-          onChange={handlePwChange} placeholder="••••••••"
-          className="input-luxury" style={{ paddingRight: '44px' }} />
-        <button type="button" onClick={onToggle}
-          style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#AA9688', display: 'flex', padding: 0 }}>
-          {show ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
-        </button>
-      </div>
-    </div>
-  )
 
   if (statsLoading) return (
     <>
@@ -173,7 +190,9 @@ export default function Profile() {
                 </h1>
                 <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#5A4A3A', marginTop: '3px', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.email}
-                  {user?.is_staff && <span style={{ marginLeft: '10px', background: 'rgba(184,137,90,0.2)', color: '#B8895A', fontSize: '9px', padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>}
+                  {user?.is_staff && (
+                    <span style={{ marginLeft: '10px', background: 'rgba(184,137,90,0.2)', color: '#B8895A', fontSize: '9px', padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -186,8 +205,8 @@ export default function Profile() {
           {stats && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#E6DDD3', marginBottom: '28px' }}>
               {[
-                { icon: <ShoppingBag size={16} strokeWidth={1.5} />, label: 'Total Orders', value: stats.total            },
-                { icon: <CheckCircle size={16} strokeWidth={1.5} />, label: 'Paid Orders',  value: stats.paid             },
+                { icon: <ShoppingBag size={16} strokeWidth={1.5} />, label: 'Total Orders', value: stats.total               },
+                { icon: <CheckCircle size={16} strokeWidth={1.5} />, label: 'Paid Orders',  value: stats.paid                },
                 { icon: <DollarSign  size={16} strokeWidth={1.5} />, label: 'Total Spent',  value: `Rs. ${stats.totalSpent}` },
               ].map((s, i) => (
                 <div key={i} style={{ background: '#FFFFFF', padding: 'clamp(14px,2vw,20px) clamp(14px,2vw,24px)', textAlign: 'center' }}>
@@ -236,11 +255,30 @@ export default function Profile() {
               </SectionCard>
 
               {/* Change Password */}
-              <SectionCard title="Change Password" icon={<Lock size={17} strokeWidth={1.5} />}
-                subtitle="You will be logged out after changing your password">
+              <SectionCard
+                title="Change Password"
+                icon={<Lock size={17} strokeWidth={1.5} />}
+                subtitle="You will be logged out after changing your password"
+              >
                 <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <PasswordField name="old_password"     label="Current Password" value={pwForm.old_password}     show={showPw.old}     onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))} />
-                  <PasswordField name="new_password"     label="New Password"     value={pwForm.new_password}     show={showPw.new}     onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))} />
+
+                  <PasswordField
+                    name="old_password"
+                    label="Current Password"
+                    value={pwForm.old_password}
+                    onChange={handlePwChange}
+                    show={showPw.old}
+                    onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))}
+                  />
+
+                  <PasswordField
+                    name="new_password"
+                    label="New Password"
+                    value={pwForm.new_password}
+                    onChange={handlePwChange}
+                    show={showPw.new}
+                    onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))}
+                  />
 
                   {/* Same as current warning */}
                   {isSameAsCurrent && (
@@ -262,21 +300,37 @@ export default function Profile() {
                     </div>
                   )}
 
-                  <PasswordField name="confirm_password" label="Confirm Password"  value={pwForm.confirm_password} show={showPw.confirm} onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))} />
+                  <PasswordField
+                    name="confirm_password"
+                    label="Confirm Password"
+                    value={pwForm.confirm_password}
+                    onChange={handlePwChange}
+                    show={showPw.confirm}
+                    onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))}
+                  />
 
                   {/* Match indicator */}
                   {pwForm.confirm_password && (
                     <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: pwForm.new_password === pwForm.confirm_password ? '#4A7A57' : '#963838', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 300 }}>
                       {pwForm.new_password === pwForm.confirm_password
                         ? <><CheckCircle size={11} strokeWidth={1.5} /> Passwords match</>
-                        : <><AlertCircle size={11} strokeWidth={1.5} /> Passwords do not match</>}
+                        : <><AlertCircle  size={11} strokeWidth={1.5} /> Passwords do not match</>}
                     </p>
                   )}
 
-                  <button type="submit"
-                    disabled={pwLoading || !pwForm.old_password || !pwForm.new_password || !pwForm.confirm_password || isSameAsCurrent || pwForm.new_password !== pwForm.confirm_password}
+                  <button
+                    type="submit"
+                    disabled={
+                      pwLoading ||
+                      !pwForm.old_password ||
+                      !pwForm.new_password ||
+                      !pwForm.confirm_password ||
+                      isSameAsCurrent ||
+                      pwForm.new_password !== pwForm.confirm_password
+                    }
                     className="btn-primary"
-                    style={{ gap: '8px', opacity: pwLoading ? 0.7 : 1 }}>
+                    style={{ gap: '8px', opacity: pwLoading ? 0.7 : 1 }}
+                  >
                     <Lock size={14} strokeWidth={1.5} />
                     {pwLoading ? 'Changing...' : 'Change Password'}
                   </button>
