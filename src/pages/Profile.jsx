@@ -1,23 +1,113 @@
-// src/pages/Profile.jsx
-// Password change भएपछि auto logout — industry standard
+// src/pages/Profile.jsx — SkinMedica Luxury Redesign + Mobile Responsive
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import { ProfileSkeleton } from '../components/Skeleton'
+import SEO from '../components/SEO'
 import toast from 'react-hot-toast'
+import {
+  User, ShoppingBag, DollarSign, Lock, Eye, EyeOff,
+  Shield, CheckCircle, AlertCircle, LogOut,
+  Edit3,
+} from 'lucide-react'
+
+const PROFILE_CSS = `
+  .profile-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .profile-name-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .profile-header-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  @media (max-width: 900px) {
+    .profile-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .profile-name-grid { grid-template-columns: 1fr; }
+    .profile-header-row { gap: 14px; }
+  }
+`
+
+const getStrength = (pw) => {
+  if (!pw) return null
+  let s = 0
+  if (pw.length >= 8)          s++
+  if (/[A-Z]/.test(pw))        s++
+  if (/[0-9]/.test(pw))        s++
+  if (/[^A-Za-z0-9]/.test(pw)) s++
+  const meta = [
+    { label: 'Weak',   color: '#963838', width: '25%'  },
+    { label: 'Fair',   color: '#89670F', width: '50%'  },
+    { label: 'Good',   color: '#4A7A57', width: '75%'  },
+    { label: 'Strong', color: '#4A7A57', width: '100%' },
+  ]
+  return { ...meta[s - 1], score: s }
+}
+
+// ── Outside Profile to prevent re-mount on every keystroke ──
+const PasswordField = ({ name, label, value, onChange, show, onToggle }) => (
+  <div>
+    <label className="input-label">{label}</label>
+    <div style={{ position: 'relative', marginTop: '8px' }}>
+      <input
+        type={show ? 'text' : 'password'}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder="••••••••"
+        className="input-luxury"
+        style={{ paddingRight: '44px' }}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          position: 'absolute', right: '14px', top: '50%',
+          transform: 'translateY(-50%)', background: 'none',
+          border: 'none', cursor: 'pointer', color: '#AA9688',
+          display: 'flex', padding: 0,
+        }}
+      >
+        {show ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
+      </button>
+    </div>
+  </div>
+)
+
+const SectionCard = ({ title, icon, subtitle, children }) => (
+  <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', overflow: 'hidden' }}>
+    <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ color: '#B8895A', flexShrink: 0 }}>{icon}</div>
+      <div>
+        <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: '16px', color: '#16100C', fontWeight: 400 }}>{title}</h2>
+        {subtitle && <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', color: '#AA9688', marginTop: '2px', fontWeight: 300 }}>{subtitle}</p>}
+      </div>
+    </div>
+    <div style={{ padding: '24px' }}>{children}</div>
+  </div>
+)
 
 export default function Profile() {
   const { user, logout } = useAuth()
-  const [form, setForm]           = useState({ first_name:'', last_name:'', phone:'' })
-  const [pwForm, setPwForm]       = useState({ old_password:'', new_password:'', confirm_password:'' })
-  const [loading, setLoading]     = useState(false)
-  const [pwLoading, setPwLoading] = useState(false)
+  const [form,         setForm]         = useState({ first_name: '', last_name: '', phone: '' })
+  const [pwForm,       setPwForm]       = useState({ old_password: '', new_password: '', confirm_password: '' })
+  const [loading,      setLoading]      = useState(false)
+  const [pwLoading,    setPwLoading]    = useState(false)
   const [statsLoading, setStatsLoading] = useState(true)
-  const [stats, setStats]         = useState(null)
-  const [showPw, setShowPw]       = useState({ old:false, new:false, confirm:false })
+  const [stats,        setStats]        = useState(null)
+  const [showPw,       setShowPw]       = useState({ old: false, new: false, confirm: false })
 
   useEffect(() => {
-    if (user) setForm({ first_name: user.first_name||'', last_name: user.last_name||'', phone: user.phone||'' })
+    if (user) setForm({ first_name: user.first_name || '', last_name: user.last_name || '', phone: user.phone || '' })
   }, [user])
 
   useEffect(() => {
@@ -28,7 +118,7 @@ export default function Profile() {
         const total  = orders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0)
         setStats({ total: orders.length, paid, totalSpent: total.toFixed(2) })
       })
-      .catch(() => setStats({ total:0, paid:0, totalSpent:'0.00' }))
+      .catch(() => setStats({ total: 0, paid: 0, totalSpent: '0.00' }))
       .finally(() => setStatsLoading(false))
   }, [])
 
@@ -36,268 +126,356 @@ export default function Profile() {
   const handlePwChange = (e) => setPwForm({ ...pwForm, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     try {
       await api.patch('/users/profile/', form)
-      toast.success('Profile updated successfully! ✅')
+      toast.success('Profile updated successfully')
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to update profile.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const handlePasswordChange = async (e) => {
     e.preventDefault()
-
-    // ── Frontend validations (fast feedback) ──────────────
-    if (pwForm.new_password.length < 8) {
-      toast.error('Password must be at least 8 characters!')
-      return
-    }
-    if (pwForm.new_password === pwForm.old_password) {
-      toast.error('New password cannot be the same as your current password!')
-      return
-    }
-    if (pwForm.new_password !== pwForm.confirm_password) {
-      toast.error('New passwords do not match!')
-      return
-    }
-
+    if (pwForm.new_password.length < 8)                  { toast.error('Password must be at least 8 characters'); return }
+    if (pwForm.new_password === pwForm.old_password)     { toast.error('New password cannot be same as current'); return }
+    if (pwForm.new_password !== pwForm.confirm_password) { toast.error('Passwords do not match'); return }
     setPwLoading(true)
     try {
       await api.post('/users/change-password/', {
-        old_password:         pwForm.old_password,
-        new_password:         pwForm.new_password,
+        old_password: pwForm.old_password,
+        new_password: pwForm.new_password,
         confirm_new_password: pwForm.confirm_password,
       })
-
-      // ✅ INDUSTRY STANDARD: logout after password change
-      // All sessions invalidated on backend — force re-login
-      toast.success('Password changed! Please login again for security. 🔒', { duration: 4000 })
+      toast.success('Password changed. Please login again.', { duration: 4000 })
       setTimeout(() => logout(), 2000)
-
     } catch (err) {
       const data = err.response?.data
-      const msg  = typeof data === 'string'
-        ? data
-        : data?.error || data?.old_password?.[0] || data?.new_password?.[0] || 'Failed to change password.'
+      const msg  = typeof data === 'string' ? data : data?.error || data?.old_password?.[0] || data?.new_password?.[0] || 'Failed to change password.'
       toast.error(typeof msg === 'string' ? msg : 'Failed to change password.')
-    } finally {
-      setPwLoading(false)
-    }
+    } finally { setPwLoading(false) }
   }
 
-  // Password strength checker
-  const getStrength = (pw) => {
-    if (!pw) return null
-    let score = 0
-    if (pw.length >= 8)          score++
-    if (/[A-Z]/.test(pw))        score++
-    if (/[0-9]/.test(pw))        score++
-    if (/[^A-Za-z0-9]/.test(pw)) score++
-    if (score <= 1) return { label:'Weak',   color:'bg-red-500',    width:'w-1/4',  text:'text-red-500'    }
-    if (score === 2) return { label:'Fair',   color:'bg-yellow-500', width:'w-2/4',  text:'text-yellow-600' }
-    if (score === 3) return { label:'Good',   color:'bg-blue-500',   width:'w-3/4',  text:'text-blue-600'   }
-    return                        { label:'Strong', color:'bg-green-500',  width:'w-full', text:'text-green-600'  }
-  }
-  const strength = getStrength(pwForm.new_password)
-
-  // Same as current password warning
+  const strength        = getStrength(pwForm.new_password)
   const isSameAsCurrent = pwForm.new_password && pwForm.new_password === pwForm.old_password
 
-  const PasswordInput = ({ name, label, value, show, onToggle }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <div className="relative">
-        <input type={show ? 'text' : 'password'} name={name} value={value}
-          onChange={handlePwChange} placeholder="••••••••"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800" />
-        <button type="button" onClick={onToggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg">
-          {show ? '🙈' : '👁️'}
-        </button>
-      </div>
-    </div>
+  if (statsLoading) return (
+    <>
+      <SEO title="My Profile" description="Manage your account" url="/profile" noIndex />
+      <ProfileSkeleton />
+    </>
   )
 
-  if (statsLoading) return <ProfileSkeleton />
+  const initials = `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase() || 'SC'
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-linear-to-r from-purple-600 to-pink-500 text-white py-8 sm:py-10 px-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl sm:text-4xl font-bold shrink-0">
-            {user?.first_name?.[0]?.toUpperCase() || '👤'}
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-3xl font-bold truncate">{user?.first_name} {user?.last_name}</h1>
-            <p className="text-purple-100 text-sm sm:text-base truncate">{user?.email}</p>
-            {user?.is_staff && <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full mt-1 inline-block">👑 Admin</span>}
-          </div>
-        </div>
-      </div>
+    <>
+      <SEO title="My Profile" description="Manage your SkinCare account" url="/profile" noIndex />
+      <style>{PROFILE_CSS}</style>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+      <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
 
-        {/* Stats */}
-        {stats && (
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { label:'Total Orders', value: stats.total,              emoji:'📦' },
-              { label:'Paid Orders',  value: stats.paid,               emoji:'✅' },
-              { label:'Total Spent',  value:`Rs. ${stats.totalSpent}`, emoji:'💰' },
-            ].map((s, i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-sm p-3 sm:p-5 text-center">
-                <div className="text-2xl sm:text-3xl mb-1">{s.emoji}</div>
-                <p className="text-lg sm:text-2xl font-bold text-purple-600 truncate">{s.value}</p>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">{s.label}</p>
+        {/* ── Hero Header — warm beige ── */}
+        <div style={{
+          background: 'rgb(228, 189, 120)',
+          borderBottom: '1px solid #E6DDD3',
+          padding: 'clamp(32px,5vw,56px) 0 40px',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Decorative circle */}
+          <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.15)', pointerEvents: 'none' }} />
+          {/* Dot pattern */}
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(184,137,90,0.07) 1px, transparent 1px)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
+
+          <div className="container-luxury" style={{ position: 'relative', zIndex: 1 }}>
+            <div className="profile-header-row">
+
+              {/* Initials avatar */}
+              <div style={{
+                width: 'clamp(52px,8vw,72px)',
+                height: 'clamp(52px,8vw,72px)',
+                border: '1.5px solid #B8895A',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: "'Playfair Display',serif",
+                fontSize: 'clamp(18px,3vw,26px)',
+                color: '#B8895A',
+                background: '#FFFFFF',
+                flexShrink: 0,
+                boxShadow: '0 4px 20px rgba(184,137,90,0.12)',
+              }}>
+                {initials}
               </div>
-            ))}
-          </div>
-        )}
 
-        {/* Edit Profile */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-5">✏️ Edit Profile</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <input type="text" name="first_name" value={form.first_name} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <input type="text" name="last_name" value={form.last_name} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={user?.email||''} disabled
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-400 cursor-not-allowed" />
-              <p className="text-xs text-gray-400 mt-1">Email cannot be changed.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input type="text" name="phone" value={form.phone} onChange={handleChange} placeholder="98XXXXXXXX"
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800" />
-            </div>
-            <button type="submit" disabled={loading}
-              className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-bold px-8 py-3 rounded-xl transition-colors">
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
-          </form>
-        </div>
-
-        {/* Change Password */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-          <div className="flex items-start gap-3 mb-5">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">🔒 Change Password</h2>
-              <p className="text-sm text-gray-400 mt-0.5">
-                After changing, you will be logged out from all devices for security.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            <PasswordInput name="old_password" label="Current Password"
-              value={pwForm.old_password} show={showPw.old}
-              onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))} />
-
-            <PasswordInput name="new_password" label="New Password"
-              value={pwForm.new_password} show={showPw.new}
-              onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))} />
-
-            {/* Same as current — inline warning */}
-            {isSameAsCurrent && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <span>⚠️</span>
-                <p className="text-red-600 text-sm font-medium">
-                  New password cannot be the same as your current password!
+              {/* User info */}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{
+                  fontFamily: "'DM Sans',sans-serif",
+                  fontSize: '10px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.2em',
+                  color: '#B8895A',
+                  marginBottom: '5px',
+                  fontWeight: 400,
+                }}>
+                  My Account
+                </p>
+                <h1 style={{
+                  fontFamily: "'Playfair Display',serif",
+                  fontSize: 'clamp(20px,3vw,30px)',
+                  color: '#16100C',
+                  fontWeight: 400,
+                  lineHeight: 1.1,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  marginBottom: '5px',
+                }}>
+                  {user?.first_name} {user?.last_name}
+                </h1>
+                <p style={{
+                  fontFamily: "'DM Sans',sans-serif",
+                  fontSize: '12.5px',
+                  color: '#7B6458',
+                  fontWeight: 300,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {user?.email}
+                  {user?.is_staff && (
+                    <span style={{
+                      marginLeft: '10px',
+                      background: 'rgba(184,137,90,0.15)',
+                      color: '#B8895A',
+                      fontSize: '9px',
+                      padding: '2px 10px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.12em',
+                      border: '1px solid rgba(184,137,90,0.3)',
+                    }}>
+                      Admin
+                    </span>
+                  )}
                 </p>
               </div>
-            )}
 
-            {/* Strength bar */}
-            {pwForm.new_password && strength && !isSameAsCurrent && (
-              <div className="space-y-1.5">
-                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div className={`h-2 rounded-full transition-all duration-300 ${strength.color} ${strength.width}`} />
+              {/* Verified badge */}
+              {user?.is_verified && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  border: '1px solid rgba(74,122,87,0.3)',
+                  background: 'rgba(74,122,87,0.06)',
+                  flexShrink: 0,
+                }}>
+                  <CheckCircle size={12} strokeWidth={1.5} style={{ color: '#4A7A57' }} />
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#4A7A57', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400 }}>
+                    Verified
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className={`text-xs font-semibold ${strength.text}`}>
-                    Strength: {strength.label}
-                  </p>
-                  <p className="text-xs text-gray-400">Use A-Z, 0-9, symbols for Strong</p>
-                </div>
-              </div>
-            )}
-
-            <PasswordInput name="confirm_password" label="Confirm New Password"
-              value={pwForm.confirm_password} show={showPw.confirm}
-              onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))} />
-
-            {/* Match indicator */}
-            {pwForm.confirm_password && (
-              <p className={`text-xs font-semibold flex items-center gap-1 ${
-                pwForm.new_password === pwForm.confirm_password ? 'text-green-600' : 'text-red-500'}`}>
-                {pwForm.new_password === pwForm.confirm_password
-                  ? '✅ Passwords match'
-                  : '❌ Passwords do not match'}
-              </p>
-            )}
-
-            {/* Security notice */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
-              <span className="text-base mt-0.5">🔐</span>
-              <p className="text-amber-700 text-xs">
-                <strong>Security notice:</strong> Changing your password will log you out from all devices and sessions. A security alert will be sent to your email.
-              </p>
+              )}
             </div>
-
-            <button type="submit"
-              disabled={
-                pwLoading ||
-                !pwForm.old_password ||
-                !pwForm.new_password ||
-                !pwForm.confirm_password ||
-                isSameAsCurrent ||
-                pwForm.new_password !== pwForm.confirm_password
-              }
-              className="w-full sm:w-auto bg-gray-800 hover:bg-gray-900 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold px-8 py-3 rounded-xl transition-colors">
-              {pwLoading ? '🔄 Changing...' : '🔒 Change Password'}
-            </button>
-          </form>
-        </div>
-
-        {/* Account Info */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">🛡️ Account Info</h2>
-          <div className="space-y-0">
-            {[
-              { label:'Account Type',   value: user?.is_staff ? '👑 Admin' : '👤 Customer', color:'' },
-              { label:'Email Verified', value: user?.is_verified ? '✅ Verified' : '❌ Not Verified', color: user?.is_verified ? 'text-green-600' : 'text-red-500' },
-              { label:'Member Since',   value: user?.date_joined ? new Date(user.date_joined).toLocaleDateString('en-NP',{year:'numeric',month:'long'}) : 'N/A', color:'' },
-            ].map((item, i, arr) => (
-              <div key={i} className={`flex justify-between items-center py-3 ${i < arr.length-1 ? 'border-b border-gray-100' : ''}`}>
-                <span className="text-gray-500 text-sm">{item.label}</span>
-                <span className={`font-medium text-sm ${item.color || 'text-gray-800'}`}>{item.value}</span>
-              </div>
-            ))}
           </div>
         </div>
 
-        {/* Logout */}
-        <button onClick={logout}
-          className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-2xl transition-colors border-2 border-red-100">
-          🚪 Logout
-        </button>
+        <div className="container-luxury" style={{ padding: 'clamp(24px,4vw,40px) 32px clamp(48px,6vw,80px)' }}>
+
+          {/* Stats row */}
+          {stats && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#E6DDD3', marginBottom: '28px' }}>
+              {[
+                { icon: <ShoppingBag size={16} strokeWidth={1.5} />, label: 'Total Orders', value: stats.total               },
+                { icon: <CheckCircle size={16} strokeWidth={1.5} />, label: 'Paid Orders',  value: stats.paid                },
+                { icon: <DollarSign  size={16} strokeWidth={1.5} />, label: 'Total Spent',  value: `Rs. ${stats.totalSpent}` },
+              ].map((s, i) => (
+                <div key={i} style={{ background: '#FFFFFF', padding: 'clamp(14px,2vw,20px) clamp(14px,2vw,24px)', textAlign: 'center' }}>
+                  <div style={{ color: '#B8895A', display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>{s.icon}</div>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(18px,3vw,26px)', color: '#16100C', fontWeight: 400, lineHeight: 1, marginBottom: '6px' }}>{s.value}</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400 }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="profile-layout">
+
+            {/* ── Left: Forms ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* Edit Profile */}
+              <SectionCard title="Edit Profile" icon={<Edit3 size={17} strokeWidth={1.5} />}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="profile-name-grid">
+                    {[{ name: 'first_name', label: 'First Name' }, { name: 'last_name', label: 'Last Name' }].map(f => (
+                      <div key={f.name}>
+                        <label className="input-label">{f.label}</label>
+                        <input type="text" name={f.name} value={form[f.name]} onChange={handleChange}
+                          className="input-luxury" style={{ marginTop: '8px' }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <label className="input-label">Email</label>
+                    <input type="email" value={user?.email || ''} disabled className="input-luxury"
+                      style={{ marginTop: '8px', background: '#FAF8F5', color: '#AA9688', cursor: 'not-allowed' }} />
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', marginTop: '4px', fontWeight: 300 }}>Email cannot be changed</p>
+                  </div>
+                  <div>
+                    <label className="input-label">Phone Number</label>
+                    <input type="text" name="phone" value={form.phone} onChange={handleChange}
+                      placeholder="98XXXXXXXX" className="input-luxury" style={{ marginTop: '8px' }} />
+                  </div>
+                  <div>
+                    <button type="submit" disabled={loading} className="btn-primary" style={{ gap: '8px', opacity: loading ? 0.7 : 1 }}>
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </SectionCard>
+
+              {/* Change Password */}
+              <SectionCard
+                title="Change Password"
+                icon={<Lock size={17} strokeWidth={1.5} />}
+                subtitle="You will be logged out after changing your password"
+              >
+                <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+                  <PasswordField
+                    name="old_password"
+                    label="Current Password"
+                    value={pwForm.old_password}
+                    onChange={handlePwChange}
+                    show={showPw.old}
+                    onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))}
+                  />
+
+                  <PasswordField
+                    name="new_password"
+                    label="New Password"
+                    value={pwForm.new_password}
+                    onChange={handlePwChange}
+                    show={showPw.new}
+                    onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))}
+                  />
+
+                  {isSameAsCurrent && (
+                    <div className="alert-error">
+                      <AlertCircle size={12} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+                      New password cannot be same as current
+                    </div>
+                  )}
+
+                  {strength && pwForm.new_password && !isSameAsCurrent && (
+                    <div>
+                      <div style={{ height: '3px', background: '#E6DDD3', marginBottom: '6px' }}>
+                        <div style={{ height: '100%', width: strength.width, background: strength.color, transition: 'width 0.3s ease, background 0.3s ease' }} />
+                      </div>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: strength.color, fontWeight: 400 }}>
+                        {strength.label} password
+                      </p>
+                    </div>
+                  )}
+
+                  <PasswordField
+                    name="confirm_password"
+                    label="Confirm Password"
+                    value={pwForm.confirm_password}
+                    onChange={handlePwChange}
+                    show={showPw.confirm}
+                    onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))}
+                  />
+
+                  {pwForm.confirm_password && (
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: pwForm.new_password === pwForm.confirm_password ? '#4A7A57' : '#963838', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 300 }}>
+                      {pwForm.new_password === pwForm.confirm_password
+                        ? <><CheckCircle size={11} strokeWidth={1.5} /> Passwords match</>
+                        : <><AlertCircle  size={11} strokeWidth={1.5} /> Passwords do not match</>}
+                    </p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={pwLoading || !pwForm.old_password || !pwForm.new_password || !pwForm.confirm_password || isSameAsCurrent || pwForm.new_password !== pwForm.confirm_password}
+                    className="btn-primary"
+                    style={{ gap: '8px', opacity: pwLoading ? 0.7 : 1 }}
+                  >
+                    <Lock size={14} strokeWidth={1.5} />
+                    {pwLoading ? 'Changing...' : 'Change Password'}
+                  </button>
+                </form>
+              </SectionCard>
+            </div>
+
+            {/* ── Right: Sidebar ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* Account Info */}
+              <SectionCard title="Account Info" icon={<Shield size={17} strokeWidth={1.5} />}>
+                <div>
+                  {[
+                    { label: 'Account Type',   value: user?.is_staff ? 'Administrator' : 'Customer', color: user?.is_staff ? '#B8895A' : '#16100C' },
+                    { label: 'Email Verified', value: user?.is_verified ? 'Verified' : 'Not Verified', color: user?.is_verified ? '#4A7A57' : '#963838' },
+                    { label: 'Member Since',   value: user?.date_joined ? new Date(user.date_joined).toLocaleDateString('en-NP', { year: 'numeric', month: 'long' }) : 'N/A', color: '#16100C' },
+                  ].map((item, i, arr) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid #EEE7DF' : 'none', gap: '12px' }}>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>{item.label}</span>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: item.color, fontWeight: 400, textAlign: 'right' }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Quick links */}
+              <SectionCard title="Quick Links" icon={<User size={17} strokeWidth={1.5} />}>
+                <div>
+                  {[
+                    { href: '/orders',   label: 'My Orders'   },
+                    { href: '/wishlist', label: 'My Wishlist' },
+                    { href: '/products', label: 'Shop Now'    },
+                  ].map((link, i, arr) => (
+                    <a key={i} href={link.href} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 0',
+                      borderBottom: i < arr.length - 1 ? '1px solid #EEE7DF' : 'none',
+                      fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px',
+                      color: '#3A2820', textDecoration: 'none', fontWeight: 400,
+                      transition: 'color 0.15s',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#B8895A'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#3A2820'}
+                    >
+                      {link.label}
+                      <span style={{ color: '#D4C4B0', fontSize: '16px' }}>›</span>
+                    </a>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Sign out */}
+              <button onClick={logout} style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                background: 'transparent', border: '1px solid #E6DDD3',
+                padding: '13px', cursor: 'pointer',
+                fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400,
+                textTransform: 'uppercase', letterSpacing: '0.12em',
+                color: '#963838', transition: 'all 0.2s ease',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FCF3F3'; e.currentTarget.style.borderColor = '#963838' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#E6DDD3' }}
+              >
+                <LogOut size={14} strokeWidth={1.5} />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
