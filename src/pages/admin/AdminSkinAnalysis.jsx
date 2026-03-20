@@ -27,9 +27,15 @@ const CSS = `
 `
 
 const SKIN_COLORS = { oily: '#B8895A', dry: '#5A7FA6', normal: '#4A7A57', '—': '#6B6B6B' }
-const SKIN_ICONS  = { oily: <Droplets size={13} strokeWidth={1.5} />, dry: <Leaf size={13} strokeWidth={1.5} />, normal: <Sun size={13} strokeWidth={1.5} /> }
-const PIE_COLORS  = ['#B8895A', '#5A7FA6', '#4A7A57', '#AA9688']
+const SKIN_ICONS  = {
+  oily:   <Droplets size={13} strokeWidth={1.5} />,
+  dry:    <Leaf     size={13} strokeWidth={1.5} />,
+  normal: <Sun      size={13} strokeWidth={1.5} />,
+}
+const PIE_COLORS        = ['#B8895A', '#5A7FA6', '#4A7A57', '#AA9688']
+const STATUS_PIE_COLORS = ['#4A7A57', '#B8895A', '#963838', '#AA9688']
 
+// ── Stat Card ─────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, sub, color }) => (
   <div style={{ background: A.surface, border: `1px solid ${A.border}`, padding: '18px 20px' }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -41,12 +47,13 @@ const StatCard = ({ icon: Icon, label, value, sub, color }) => (
   </div>
 )
 
+// ── Status Badge ──────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const map = {
-    completed: { bg: 'rgba(74,122,87,0.15)',  color: '#4A7A57', label: 'Completed' },
+    completed:  { bg: 'rgba(74,122,87,0.15)',  color: '#4A7A57', label: 'Completed'  },
     processing: { bg: 'rgba(184,137,90,0.15)', color: '#B8895A', label: 'Processing' },
-    failed:    { bg: 'rgba(150,56,56,0.15)',  color: '#963838', label: 'Failed'    },
-    pending:   { bg: 'rgba(107,107,107,0.15)',color: '#AA9688', label: 'Pending'   },
+    failed:     { bg: 'rgba(150,56,56,0.15)',  color: '#963838', label: 'Failed'     },
+    pending:    { bg: 'rgba(107,107,107,0.15)',color: '#AA9688', label: 'Pending'    },
   }
   const s = map[status] || map.pending
   return (
@@ -56,6 +63,7 @@ const StatusBadge = ({ status }) => {
   )
 }
 
+// ── Skin Type Badge ───────────────────────────────────────
 const SkinTypeBadge = ({ type }) => {
   const color = SKIN_COLORS[type] || '#AA9688'
   return (
@@ -66,20 +74,57 @@ const SkinTypeBadge = ({ type }) => {
   )
 }
 
+// ── Confidence Label Badge ────────────────────────────────
+const ConfidenceBadge = ({ label }) => {
+  const map = {
+    'High':   { bg: 'rgba(74,122,87,0.12)',  color: '#4A7A57' },
+    'Medium': { bg: 'rgba(184,137,90,0.12)', color: '#B8895A' },
+    'Low':    { bg: 'rgba(150,56,56,0.12)',  color: '#963838' },
+    '—':      { bg: 'transparent',           color: '#AA9688' },
+  }
+  const s = map[label] || map['—']
+  return (
+    <span style={{ background: s.bg, color: s.color, fontFamily: A.sans, fontSize: '10px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 10px' }}>
+      {label || '—'}
+    </span>
+  )
+}
+
+// ── User Cell ─────────────────────────────────────────────
+const UserCell = ({ userName, userEmail }) => {
+  const isGuest = !userName || userName === 'Guest'
+  return (
+    <div>
+      <p style={{
+        color: isGuest ? A.textDim : A.text,
+        fontWeight: isGuest ? 300 : 400,
+        marginBottom: '2px',
+        fontStyle: isGuest ? 'italic' : 'normal',
+      }}>
+        {isGuest ? 'Guest' : userName}
+      </p>
+      {!isGuest && (
+        <p style={{ color: A.textDim, fontSize: '11px' }}>{userEmail}</p>
+      )}
+    </div>
+  )
+}
+
+// ── Main Component ────────────────────────────────────────
 export default function AdminSkinAnalysis() {
-  const [data,      setData]      = useState(null)
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState('')
-  const [search,    setSearch]    = useState('')
-  const [skinFilter,setSkinFilter]= useState('')
-  const [statusFilter,setStatusFilter] = useState('')
+  const [data,         setData]         = useState(null)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState('')
+  const [search,       setSearch]       = useState('')
+  const [skinFilter,   setSkinFilter]   = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   const fetchData = () => {
     setLoading(true); setError('')
     const params = new URLSearchParams()
-    if (search)      params.append('search',    search)
-    if (skinFilter)  params.append('skin_type', skinFilter)
-    if (statusFilter)params.append('status',    statusFilter)
+    if (search)       params.append('search',    search)
+    if (skinFilter)   params.append('skin_type', skinFilter)
+    if (statusFilter) params.append('status',    statusFilter)
     api.get(`/admin/skin-analysis/?${params}`)
       .then(res => setData(res.data))
       .catch(() => setError('Failed to load skin analysis data.'))
@@ -89,27 +134,24 @@ export default function AdminSkinAnalysis() {
   useEffect(() => { fetchData() }, [search, skinFilter, statusFilter])
 
   const completed  = data?.results?.filter(r => r.status === 'completed').length || 0
-  const failed     = data?.results?.filter(r => r.status === 'failed').length || 0
-  const guestCount = data?.results?.filter(r => r.user === 'Guest').length || 0
+  const guestCount = data?.results?.filter(r => r.user === '—' || r.user_name === 'Guest').length || 0
 
-  // Pie chart data from distribution
+  // Pie chart data
   const pieData = (data?.distribution || []).map(d => ({
     name:  d.skin_type ? d.skin_type.charAt(0).toUpperCase() + d.skin_type.slice(1) : 'Unknown',
     value: d.count,
   }))
 
-  // Status pie data
   const statusPieData = (data?.status_breakdown || []).map(d => ({
     name:  d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : 'Unknown',
     value: d.count,
   }))
-  const STATUS_PIE_COLORS = ['#4A7A57', '#B8895A', '#963838', '#AA9688']
 
   return (
     <AdminLayout title="Skin Analysis">
       <style>{CSS}</style>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontFamily: A.serif, fontSize: '22px', color: A.text, fontWeight: 400, marginBottom: '4px' }}>Skin Analysis</h1>
@@ -117,7 +159,8 @@ export default function AdminSkinAnalysis() {
             Overview of all AI skin analyses performed on the platform
           </p>
         </div>
-        <button onClick={fetchData} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: `1px solid ${A.border}`, padding: '8px 16px', cursor: 'pointer', fontFamily: A.sans, fontSize: '11px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.12em', transition: 'all 0.2s' }}
+        <button onClick={fetchData}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: `1px solid ${A.border}`, padding: '8px 16px', cursor: 'pointer', fontFamily: A.sans, fontSize: '11px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.12em', transition: 'all 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.borderColor = A.accent}
           onMouseLeave={e => e.currentTarget.style.borderColor = A.border}
         >
@@ -125,35 +168,59 @@ export default function AdminSkinAnalysis() {
         </button>
       </div>
 
+      {/* ── Error ── */}
       {error && (
         <div style={{ background: 'rgba(150,56,56,0.1)', border: '1px solid rgba(150,56,56,0.3)', padding: '12px 16px', marginBottom: '20px', fontFamily: A.sans, fontSize: '13px', color: '#963838' }}>
           {error}
         </div>
       )}
 
+      {/* ── Loading ── */}
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div className="sa-stats">
-            {[1,2,3].map(i => <div key={i} style={{ background: A.surface, border: `1px solid ${A.border}`, height: '90px', animation: 'pulse 1.5s ease infinite' }} />)}
+            {[1,2,3].map(i => (
+              <div key={i} style={{ background: A.surface, border: `1px solid ${A.border}`, height: '90px', opacity: 0.5 }} />
+            ))}
           </div>
-          <div style={{ background: A.surface, border: `1px solid ${A.border}`, height: '280px' }} />
+          <div style={{ background: A.surface, border: `1px solid ${A.border}`, height: '280px', opacity: 0.5 }} />
         </div>
       ) : data && (
         <>
-          {/* Stat cards */}
+          {/* ── Stat Cards ── */}
           <div className="sa-stats" style={{ marginBottom: '20px' }}>
-            <StatCard icon={FlaskConical} label="Total Analyses"  value={data.total}  sub="All time"                color={A.accent}  />
-            <StatCard icon={CheckCircle}  label="Completed"       value={completed}   sub={`${data.total > 0 ? Math.round(completed/data.total*100) : 0}% success rate`} color="#4A7A57" />
-            <StatCard icon={Users}        label="Guest Analyses"  value={guestCount}  sub="Without account"         color={A.info}    />
+            <StatCard
+              icon={FlaskConical}
+              label="Total Analyses"
+              value={data.total}
+              sub="All time"
+              color={A.accent}
+            />
+            <StatCard
+              icon={CheckCircle}
+              label="Completed"
+              value={completed}
+              sub={`${data.total > 0 ? Math.round(completed / data.total * 100) : 0}% success rate`}
+              color="#4A7A57"
+            />
+            <StatCard
+              icon={Users}
+              label="Guest Analyses"
+              value={guestCount}
+              sub="Without account"
+              color={A.info}
+            />
           </div>
 
-          {/* Charts row */}
+          {/* ── Charts Row ── */}
           <div className="sa-grid" style={{ marginBottom: '20px' }}>
 
-            {/* Skin type distribution */}
+            {/* Skin Type Distribution */}
             <div style={{ background: A.surface, border: `1px solid ${A.border}` }}>
               <div style={{ padding: '14px 20px', borderBottom: `1px solid ${A.border}` }}>
-                <h3 style={{ fontFamily: A.sans, fontSize: '11px', color: A.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Skin Type Distribution</h3>
+                <h3 style={{ fontFamily: A.sans, fontSize: '11px', color: A.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  Skin Type Distribution
+                </h3>
               </div>
               <div style={{ padding: '20px' }}>
                 {pieData.length > 0 ? (
@@ -167,17 +234,16 @@ export default function AdminSkinAnalysis() {
                         <Legend wrapperStyle={{ fontFamily: A.sans, fontSize: '11px' }} />
                       </PieChart>
                     </ResponsiveContainer>
-                    {/* Distribution list */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
                       {data.distribution.map((d, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <SkinTypeBadge type={d.skin_type} />
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{ width: '80px', height: '3px', background: A.border2 }}>
-                              <div style={{ height: '100%', width: `${data.total > 0 ? Math.round(d.count/data.total*100) : 0}%`, background: PIE_COLORS[i % PIE_COLORS.length], transition: 'width 0.6s ease' }} />
+                              <div style={{ height: '100%', width: `${data.total > 0 ? Math.round(d.count / data.total * 100) : 0}%`, background: PIE_COLORS[i % PIE_COLORS.length], transition: 'width 0.6s ease' }} />
                             </div>
                             <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textMid, minWidth: '28px', textAlign: 'right' }}>
-                              {data.total > 0 ? Math.round(d.count/data.total*100) : 0}%
+                              {data.total > 0 ? Math.round(d.count / data.total * 100) : 0}%
                             </span>
                             <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim }}>({d.count})</span>
                           </div>
@@ -191,10 +257,12 @@ export default function AdminSkinAnalysis() {
               </div>
             </div>
 
-            {/* Status breakdown */}
+            {/* Status Breakdown */}
             <div style={{ background: A.surface, border: `1px solid ${A.border}` }}>
               <div style={{ padding: '14px 20px', borderBottom: `1px solid ${A.border}` }}>
-                <h3 style={{ fontFamily: A.sans, fontSize: '11px', color: A.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Analysis Status</h3>
+                <h3 style={{ fontFamily: A.sans, fontSize: '11px', color: A.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+                  Analysis Status
+                </h3>
               </div>
               <div style={{ padding: '20px' }}>
                 {statusPieData.length > 0 ? (
@@ -215,7 +283,7 @@ export default function AdminSkinAnalysis() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textMid }}>{d.count} analyses</span>
                             <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim }}>
-                              ({data.total > 0 ? Math.round(d.count/data.total*100) : 0}%)
+                              ({data.total > 0 ? Math.round(d.count / data.total * 100) : 0}%)
                             </span>
                           </div>
                         </div>
@@ -229,8 +297,10 @@ export default function AdminSkinAnalysis() {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* ── Filters + Table ── */}
           <div style={{ background: A.surface, border: `1px solid ${A.border}`, marginBottom: '1px' }}>
+
+            {/* Filters */}
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${A.border}`, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <Filter size={13} strokeWidth={1.5} style={{ color: A.textDim }} />
 
@@ -238,8 +308,9 @@ export default function AdminSkinAnalysis() {
               <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
                 <Search size={13} strokeWidth={1.5} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: A.textDim }} />
                 <input
-                  value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Search by email..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by name or email..."
                   style={{ width: '100%', background: A.bg, border: `1px solid ${A.border}`, padding: '7px 12px 7px 30px', fontFamily: A.sans, fontSize: '12px', color: A.text, outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
@@ -284,31 +355,26 @@ export default function AdminSkinAnalysis() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.results.map((row, i) => (
+                    {data.results.map((row) => (
                       <tr key={row.id}>
                         <td style={{ color: A.textDim }}>{row.id}</td>
                         <td>
-                          <div>
-                            <p style={{ color: A.text, fontWeight: 400, marginBottom: '1px' }}>{row.user_name || 'Guest'}</p>
-                            <p style={{ color: A.textDim, fontSize: '11px' }}>{row.user}</p>
-                          </div>
+                          <UserCell
+                            userName={row.user_name}
+                            userEmail={row.user}
+                          />
                         </td>
                         <td><SkinTypeBadge type={row.skin_type} /></td>
                         <td>{row.age || '—'}</td>
                         <td style={{ textTransform: 'capitalize' }}>{row.gender || '—'}</td>
                         <td>
-                          {row.confidence > 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '50px', height: '3px', background: A.border2 }}>
-                                <div style={{ height: '100%', width: `${Math.min(row.confidence, 100)}%`, background: A.accent }} />
-                              </div>
-                              <span style={{ fontSize: '11px' }}>{row.confidence}%</span>
-                            </div>
-                          ) : '—'}
+                          <ConfidenceBadge label={row.confidence_label} />
                         </td>
                         <td><StatusBadge status={row.status} /></td>
                         <td style={{ fontSize: '11px', color: A.textDim }}>
-                          {new Date(row.created_at).toLocaleDateString('en-NP', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {new Date(row.created_at).toLocaleDateString('en-NP', {
+                            year: 'numeric', month: 'short', day: 'numeric'
+                          })}
                         </td>
                       </tr>
                     ))}
