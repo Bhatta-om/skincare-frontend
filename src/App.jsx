@@ -1,112 +1,164 @@
 // src/App.jsx
-import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import React, { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { useAuth } from './context/AuthContext'
-
-import ForgotPassword from './pages/ForgotPassword'
-import ProductDetail  from './pages/ProductDetail'
-import Wishlist       from './pages/Wishlist'
-
-import Home         from './pages/Home'
-import Login        from './pages/Login'
-import Register     from './pages/Register'
-import Products     from './pages/Products'
-import SkinAnalysis from './pages/SkinAnalysis'
-import Cart         from './pages/Cart'
-import Checkout     from './pages/Checkout'
-import EsewaSuccess from './pages/EsewaSuccess'
-import OrderHistory from './pages/OrderHistory'
-import Profile      from './pages/Profile'
-import Navbar       from './components/Navbar'
+import Navbar        from './components/Navbar'
+import Footer        from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 
-// Admin pages
-import AdminDashboard   from './pages/admin/AdminDashboard'
-import AdminOrders      from './pages/admin/AdminOrders'
-import AdminUsers       from './pages/admin/AdminUsers'
-import AdminProducts    from './pages/admin/AdminProducts'
-import AdminProductList from './pages/admin/AdminProductList'
-import AdminProductForm from './pages/admin/AdminProductForm'
-import AdminCategories  from './pages/admin/AdminCategories'
-import AdminBulkImport from './pages/admin/AdminBulkImport'
+// ── Lazy pages ────────────────────────────────────────────
+const Home           = lazy(() => import('./pages/Home'))
+const Login          = lazy(() => import('./pages/Login'))
+const Register       = lazy(() => import('./pages/Register'))
+const Products       = lazy(() => import('./pages/Products'))
+const ProductDetail  = lazy(() => import('./pages/ProductDetail'))
+const SkinAnalysis   = lazy(() => import('./pages/SkinAnalysis'))
+const Cart           = lazy(() => import('./pages/Cart'))
+const Checkout       = lazy(() => import('./pages/Checkout'))
+const EsewaSuccess   = lazy(() => import('./pages/EsewaSuccess'))
+const OrderHistory   = lazy(() => import('./pages/OrderHistory'))
+const Profile        = lazy(() => import('./pages/Profile'))
+const Wishlist       = lazy(() => import('./pages/Wishlist'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const AdminDashboard   = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminOrders      = lazy(() => import('./pages/admin/AdminOrders'))
+const AdminUsers       = lazy(() => import('./pages/admin/AdminUsers'))
+const AdminProducts    = lazy(() => import('./pages/admin/AdminProducts'))
+const AdminProductList = lazy(() => import('./pages/admin/AdminProductList'))
+const AdminProductForm = lazy(() => import('./pages/admin/AdminProductForm'))
+const AdminCategories  = lazy(() => import('./pages/admin/AdminCategories'))
+const AdminBulkImport  = lazy(() => import('./pages/admin/AdminBulkImport'))
+const AdminSkinAnalysis = lazy(() => import('./pages/admin/AdminSkinAnalysis'))
 
-// ── Guards ────────────────────────────────────────────────
+// ── Loaders ───────────────────────────────────────────────
+const PageLoader = () => (
+  <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF8F5', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ width: '32px', height: '32px', border: '1.5px solid #E6DDD3', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
+    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 400 }}>Loading</p>
+  </div>
+)
+
+const LuxuryLoader = () => (
+  <div style={{ position: 'fixed', inset: 0, background: '#FAF8F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 9999 }}>
+    <span style={{ fontFamily: "'Playfair Display',serif", fontSize: '22px', color: '#16100C', letterSpacing: '0.08em' }}>SKINCARE</span>
+    <div style={{ width: '36px', height: '36px', border: '1.5px solid #E6DDD3', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
+  </div>
+)
+
+const AdminLoader = () => (
+  <div style={{ position: 'fixed', inset: 0, background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+    <div style={{ width: '36px', height: '36px', border: '1.5px solid #333333', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
+  </div>
+)
+
+// ── 404 ───────────────────────────────────────────────────
+const NotFound = () => (
+  <div style={{ minHeight: '70vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
+    <div style={{ textAlign: 'center', maxWidth: '480px' }}>
+      <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(80px,15vw,120px)', color: '#E6DDD3', fontWeight: 400, lineHeight: 1, marginBottom: '8px', letterSpacing: '-0.04em' }}>404</p>
+      <div style={{ width: '40px', height: '1px', background: '#B8895A', margin: '0 auto 24px' }} />
+      <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '28px', color: '#16100C', fontWeight: 400, marginBottom: '12px' }}>Page Not Found</h1>
+      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '14px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, marginBottom: '36px' }}>The page you're looking for doesn't exist or has been moved.</p>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <a href="/" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: '#16100C', color: '#FAF8F5', padding: '13px 32px', textDecoration: 'none' }}>Go Home</a>
+        <a href="/products" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: 'transparent', color: '#16100C', border: '1px solid #16100C', padding: '13px 32px', textDecoration: 'none' }}>Browse Products</a>
+      </div>
+    </div>
+  </div>
+)
+
+// ── Helpers ───────────────────────────────────────────────
+const ScrollToTop = () => {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [pathname])
+  return null
+}
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
-    </div>
-  )
-  return user ? children : <Navigate to="/login" />
+  if (loading) return <LuxuryLoader />
+  return user ? children : <Navigate to="/login" replace />
 }
 
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth()
-  if (loading) return (
-    <div className="flex justify-center items-center h-screen bg-gray-950">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
-    </div>
-  )
-  if (!user)          return <Navigate to="/login" />
-  if (!user.is_staff) return <Navigate to="/" />
+  if (loading)        return <AdminLoader />
+  if (!user)          return <Navigate to="/login" replace />
+  if (!user.is_staff) return <Navigate to="/" replace />
   return children
 }
 
-// ── App ───────────────────────────────────────────────────
+const UserLayout = ({ children }) => (
+  <>
+    <Navbar />
+    <main style={{ flex: 1 }}>
+      <Suspense fallback={<PageLoader />}>{children}</Suspense>
+    </main>
+    <Footer />
+  </>
+)
 
-function App() {
+const toastOptions = {
+  duration: 3000,
+  style: { fontFamily: "'DM Sans','Inter',sans-serif", fontSize: '13px', fontWeight: 300, background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #B8895A', borderRadius: 0, padding: '14px 20px', boxShadow: '0 8px 32px rgba(22,16,12,0.2)', letterSpacing: '0.01em', minWidth: '280px' },
+  success: { style: { background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #4A7A57' }, iconTheme: { primary: '#4A7A57', secondary: '#FAF8F5' } },
+  error:   { style: { background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #963838' }, iconTheme: { primary: '#963838', secondary: '#FAF8F5' } },
+}
+
+// ── Routes (must be inside BrowserRouter for useLocation) ─
+function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      <ScrollToTop />
+      <Toaster position="bottom-right" reverseOrder={false} toastOptions={toastOptions} />
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Routes>
 
-        {/* ── User routes (with Navbar) ── */}
-        <Route path="/*" element={
-          <>
-            <Navbar />
-            <Routes>
-              <Route path="/"         element={<Home />} />
-              <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/products/:slug" element={<ProductDetail />} />
-              <Route path="/skin-analysis"  element={<SkinAnalysis />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/payment/esewa/success" element={<EsewaSuccess />} />
+          {/* ── Public ── */}
+          <Route path="/"                      element={<UserLayout><Home /></UserLayout>} />
+          <Route path="/login"                 element={<UserLayout><Login /></UserLayout>} />
+          <Route path="/register"              element={<UserLayout><Register /></UserLayout>} />
+          <Route path="/forgot-password"       element={<UserLayout><ForgotPassword /></UserLayout>} />
+          <Route path="/skin-analysis"         element={<UserLayout><SkinAnalysis /></UserLayout>} />
+          <Route path="/products"              element={<UserLayout><Products /></UserLayout>} />
+          <Route path="/products/:slug"        element={<UserLayout><ProductDetail /></UserLayout>} />
+          <Route path="/payment/esewa/success" element={<UserLayout><EsewaSuccess /></UserLayout>} />
 
-              {/* Protected routes */}
-              <Route path="/cart"     element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-              <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
-              <Route path="/orders"   element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
-              <Route path="/profile"  element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          {/* ── Protected ── */}
+          <Route path="/profile"  element={<ProtectedRoute><UserLayout><Profile /></UserLayout></ProtectedRoute>} />
+          <Route path="/cart"     element={<ProtectedRoute><UserLayout><Cart /></UserLayout></ProtectedRoute>} />
+          <Route path="/wishlist" element={<ProtectedRoute><UserLayout><Wishlist /></UserLayout></ProtectedRoute>} />
+          <Route path="/orders"   element={<ProtectedRoute><UserLayout><OrderHistory /></UserLayout></ProtectedRoute>} />
+          <Route path="/checkout" element={
+            <ProtectedRoute><ErrorBoundary><UserLayout><Checkout /></UserLayout></ErrorBoundary></ProtectedRoute>
+          } />
 
-              {/* Checkout — ErrorBoundary wrap */}
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <ErrorBoundary>
-                    <Checkout />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </>
-        } />
+          {/* ── Admin ── */}
+          <Route path="/admin"                     element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminDashboard /></Suspense></AdminRoute>} />
+          <Route path="/admin/orders"              element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminOrders /></Suspense></AdminRoute>} />
+          <Route path="/admin/users"               element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminUsers /></Suspense></AdminRoute>} />
+          <Route path="/admin/products"            element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminProductList /></Suspense></AdminRoute>} />
+          <Route path="/admin/products/stats"      element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminProducts /></Suspense></AdminRoute>} />
+          <Route path="/admin/products/add"        element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminProductForm /></Suspense></AdminRoute>} />
+          <Route path="/admin/products/edit/:slug" element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminProductForm /></Suspense></AdminRoute>} />
+          <Route path="/admin/categories"          element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminCategories /></Suspense></AdminRoute>} />
+          <Route path="/admin/bulk-import"         element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminBulkImport /></Suspense></AdminRoute>} />
+          <Route path="/admin/skin-analysis"       element={<AdminRoute><Suspense fallback={<AdminLoader />}><AdminSkinAnalysis /></Suspense></AdminRoute>} />
 
-        {/* ── Admin routes ── */}
-        <Route path="/admin"                     element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        <Route path="/admin/orders"              element={<AdminRoute><AdminOrders /></AdminRoute>} />
-        <Route path="/admin/users"               element={<AdminRoute><AdminUsers /></AdminRoute>} />
-        <Route path="/admin/products"            element={<AdminRoute><AdminProductList /></AdminRoute>} />
-        <Route path="/admin/products/stats"      element={<AdminRoute><AdminProducts /></AdminRoute>} />
-        <Route path="/admin/products/add"        element={<AdminRoute><AdminProductForm /></AdminRoute>} />
-        <Route path="/admin/products/edit/:slug" element={<AdminRoute><AdminProductForm /></AdminRoute>} />
-        <Route path="/admin/categories"          element={<AdminRoute><AdminCategories /></AdminRoute>} />
-        <Route path="/admin/bulk-import" element={<AdminRoute><AdminBulkImport /></AdminRoute>} />
+          {/* ── 404 ── */}
+          <Route path="*" element={<UserLayout><NotFound /></UserLayout>} />
 
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </div>
+    </>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  )
+}

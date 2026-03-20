@@ -1,13 +1,140 @@
-// src/pages/Home.jsx — 100% Professional Mobile Polish
-import React, { useState, useEffect } from 'react'
+// src/pages/Home.jsx — Mobile Responsive + SEO
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/axios'
+import SEO from '../components/SEO'
 import { HomeSkeleton } from '../components/Skeleton'
 import { getProductImageUrl } from '../utils/productImage'
+import {
+  ArrowRight, FlaskConical, Sparkles, ShieldCheck,
+  Truck, RefreshCw, Star, Droplets,
+  Leaf, Sun, Package,
+} from 'lucide-react'
+
+// ── Scroll reveal ─────────────────────────────────────────
+function useReveal() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { el.classList.add('visible'); obs.disconnect() } },
+      { threshold: 0.1 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  return ref
+}
+
+const Reveal = ({ children, delay = 0 }) => {
+  const ref = useReveal()
+  return (
+    <div ref={ref} className={`reveal ${delay ? `reveal-delay-${delay}` : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+const Stars = ({ rating = 0 }) => (
+  <div style={{ display: 'flex', gap: '2px' }}>
+    {[1, 2, 3, 4, 5].map(i => (
+      <Star key={i} size={11} strokeWidth={1}
+        style={{ fill: i <= Math.round(rating) ? '#B8895A' : 'none', color: i <= Math.round(rating) ? '#B8895A' : '#E6DDD3' }}
+      />
+    ))}
+  </div>
+)
+
+const ProductCard = ({ product }) => (
+  <Link to={`/products/${product.slug}`} className="product-card" style={{ display: 'block', textDecoration: 'none' }}>
+    {product.discount_percent > 0 && <span className="card-badge card-badge-sale">-{product.discount_percent}%</span>}
+    {product.is_featured && !product.discount_percent && <span className="card-badge card-badge-new">Featured</span>}
+    <div className="card-image">
+      {product.image ? (
+        <img src={getProductImageUrl(product.image)} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4EDE4' }}>
+          <Package size={40} strokeWidth={1} style={{ color: '#D4C4B0' }} />
+        </div>
+      )}
+      <button className="quick-add">Add to Cart</button>
+    </div>
+    <div className="card-body">
+      <p className="card-category">{product.brand}</p>
+      <p className="card-name">{product.name}</p>
+      {product.review_count > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Stars rating={product.avg_rating} />
+          <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688' }}>({product.review_count})</span>
+        </div>
+      )}
+      <div className="card-price">
+        {product.discount_percent > 0 && <span className="original">Rs. {product.price}</span>}
+        <span className={product.discount_percent > 0 ? 'sale' : ''}>Rs. {product.discounted_price}</span>
+      </div>
+    </div>
+  </Link>
+)
+
+const SkinTypeCard = ({ type, label, icon, desc }) => {
+  const [hov, setHov] = useState(false)
+  return (
+    <Link to={`/products?suitable_skin_type=${type}`} style={{ textDecoration: 'none' }}>
+      <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+        style={{ background: hov ? '#16100C' : '#FFFFFF', padding: 'clamp(20px, 3vw, 36px) clamp(12px, 2vw, 24px)', textAlign: 'center', transition: 'background 0.3s ease', cursor: 'pointer' }}>
+        <div style={{ color: '#B8895A', marginBottom: '12px', display: 'flex', justifyContent: 'center' }}>{icon}</div>
+        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(13px, 1.5vw, 16px)', color: hov ? '#FAF8F5' : '#16100C', fontWeight: 400, marginBottom: '4px', transition: 'color 0.3s ease' }}>{label}</p>
+        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 400 }}>{desc}</p>
+      </div>
+    </Link>
+  )
+}
+
+// ── Responsive styles injected ────────────────────────────
+const HOME_CSS = `
+  .home-hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 520px; }
+  .home-hero-right { display: flex; }
+  .home-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E6DDD3; }
+  .home-how { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+  .home-how-line { display: block; position: absolute; top: 27px; left: 12.5%; right: 12.5%; height: 1px; background: #E6DDD3; }
+  .home-skin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #E6DDD3; }
+  .home-featured-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #E6DDD3; }
+  .home-trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  .home-stats { display: flex; gap: 32px; }
+  .home-hero-pad { padding: 72px clamp(16px,4vw,64px) 72px 0; }
+  .home-cta-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+
+  @media (max-width: 1024px) {
+    .home-featured-grid { grid-template-columns: repeat(3, 1fr); }
+    .home-skin-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .home-hero { grid-template-columns: 1fr; min-height: unset; }
+    .home-hero-right { display: none; }
+    .home-hero-pad { padding: 48px 0; }
+    .home-features { grid-template-columns: 1fr; }
+    .home-how { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    .home-how-line { display: none; }
+    .home-skin-grid { grid-template-columns: repeat(2, 1fr); }
+    .home-featured-grid { grid-template-columns: repeat(2, 1fr); }
+    .home-trust-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .home-stats { gap: 24px; flex-wrap: wrap; }
+    .home-cta-btns { flex-direction: column; align-items: flex-start; }
+  }
+
+  @media (max-width: 480px) {
+    .home-hero-pad { padding: 40px 0; }
+    .home-skin-grid { grid-template-columns: repeat(2, 1fr); }
+    .home-featured-grid { grid-template-columns: repeat(2, 1fr); }
+    .home-trust-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+`
 
 export default function Home() {
   const [featured, setFeatured] = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [loading,  setLoading]  = useState(true)
 
   useEffect(() => {
     api.get('/products/?is_featured=true&page_size=4')
@@ -16,268 +143,245 @@ export default function Home() {
       .finally(() => setLoading(false))
   }, [])
 
+  const skinTypes = [
+    { type: 'oily',   label: 'Oily',   icon: <Droplets size={20} strokeWidth={1.5} />, desc: 'Balance & mattify'  },
+    { type: 'dry',    label: 'Dry',    icon: <Leaf     size={20} strokeWidth={1.5} />, desc: 'Hydrate & nourish'  },
+    { type: 'normal', label: 'Normal', icon: <Sun      size={20} strokeWidth={1.5} />, desc: 'Maintain & perfect' },
+  ]
+
+  const features = [
+    { icon: <FlaskConical size={22} strokeWidth={1.5} />, title: 'AI Skin Analysis',    desc: 'Our AI model identifies your skin type and recommends precise formulas your skin needs.' },
+    { icon: <Sparkles     size={22} strokeWidth={1.5} />, title: 'Personalized Results', desc: 'Curated recommendations matched to your skin type, concern, age, and lifestyle.' },
+    { icon: <ShieldCheck  size={22} strokeWidth={1.5} />, title: 'Clinically Trusted',   desc: 'Every product in our collection is dermatologist-reviewed and clinically validated.' },
+  ]
+
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <SEO
+        title="Home"
+        description="AI-powered skincare. Discover your skin type and find clinically proven products made precisely for you."
+        url="/"
+      />
+      <style>{HOME_CSS}</style>
 
-      {/* ── HERO ── */}
-      <section className="relative bg-linear-to-br from-purple-700 via-purple-600 to-pink-500 text-white overflow-hidden">
-        {/* Decorative */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-56 h-56 bg-pink-400/20 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl pointer-events-none" />
-        <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-yellow-300/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl pointer-events-none" />
+      <div style={{ background: '#FAF8F5' }}>
 
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-24 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full mb-6">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            AI-Powered Skin Analysis — Free
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl font-black mb-5 leading-[1.1] tracking-tight">
-            Know Your Skin.<br />
-            <span className="text-yellow-300">Glow Better.</span>
-          </h1>
-
-          <p className="text-base sm:text-xl text-purple-100 mb-8 max-w-lg mx-auto leading-relaxed">
-            Personalized skincare powered by AI. Find your skin type and the products made for you.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/skin-analysis"
-              className="bg-white text-purple-700 font-bold px-8 py-4 rounded-2xl hover:bg-yellow-50 active:scale-95 transition-all shadow-xl shadow-purple-900/25 text-base">
-              ✨ Analyze My Skin — Free
-            </Link>
-            <Link to="/products"
-              className="border-2 border-white/60 text-white font-bold px-8 py-4 rounded-2xl hover:bg-white/10 active:scale-95 transition-all text-base backdrop-blur-sm">
-              Shop Products →
-            </Link>
-          </div>
-
-          {/* Trust pills */}
-          <div className="flex items-center justify-center gap-3 sm:gap-8 mt-10 flex-wrap">
-            {[
-              { icon: '🎯', label: '96% Accuracy' },
-              { icon: '🧴', label: '500+ Products' },
-              { icon: '⚡', label: '30 Sec Analysis' },
-            ].map((t, i) => (
-              <div key={i} className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                <span className="text-sm">{t.icon}</span>
-                <span className="text-purple-100 text-xs sm:text-sm font-medium">{t.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section className="py-12 sm:py-20 px-5 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8 sm:mb-14">
-            <p className="text-purple-600 text-sm font-bold uppercase tracking-widest mb-2">Why SkinCare</p>
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">Everything for Healthy Skin</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              {
-                icon: '🔬', title: 'AI Skin Analysis',
-                desc: 'Our CNN model identifies your skin type with 96% accuracy — dry, oily, or normal.',
-                color: 'bg-purple-600', light: 'bg-purple-50 border-purple-100',
-              },
-              {
-                icon: '💊', title: 'Personalized Picks',
-                desc: 'Recommendations tailored to your skin type, age, and gender — not generic lists.',
-                color: 'bg-pink-500', light: 'bg-pink-50 border-pink-100',
-              },
-              {
-                icon: '🛡️', title: 'Trusted Brands',
-                desc: 'Curated collection of dermatologist-recommended products you can trust.',
-                color: 'bg-blue-600', light: 'bg-blue-50 border-blue-100',
-              },
-            ].map((f, i) => (
-              <div key={i} className={`rounded-2xl p-6 sm:p-8 border-2 ${f.light} hover:shadow-lg transition-all group`}>
-                <div className={`w-14 h-14 ${f.color} rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-lg group-hover:scale-110 transition-transform`}>
-                  {f.icon}
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section className="py-12 sm:py-20 px-5">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8 sm:mb-14">
-            <p className="text-purple-600 text-sm font-bold uppercase tracking-widest mb-2">Simple Process</p>
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900">How It Works</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
-            {[
-              { step: '1', icon: '📸', title: 'Upload Photo',  desc: 'Clear selfie in good lighting', color: 'bg-purple-100 text-purple-600' },
-              { step: '2', icon: '🤖', title: 'AI Analyzes',   desc: 'CNN model reads your skin',    color: 'bg-pink-100 text-pink-600'   },
-              { step: '3', icon: '📋', title: 'Get Results',   desc: 'See your skin type & profile', color: 'bg-blue-100 text-blue-600'   },
-              { step: '4', icon: '🛒', title: 'Shop Products', desc: 'Buy what\'s made for you',     color: 'bg-green-100 text-green-600' },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 ${s.color} rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mx-auto mb-3 font-black`}>
-                  {s.icon}
-                </div>
-                <div className="text-purple-500 font-black text-xs mb-1 tracking-widest">STEP {s.step}</div>
-                <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1">{s.title}</h3>
-                <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA inline */}
-          <div className="mt-10 sm:mt-14 text-center">
-            <Link to="/skin-analysis"
-              className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-purple-200 text-sm sm:text-base">
-              ✨ Try It Free Now
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FEATURED PRODUCTS ── */}
-      <section className="py-12 sm:py-20 px-5 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-end mb-6 sm:mb-10">
-            <div>
-              <p className="text-purple-600 text-xs font-bold uppercase tracking-widest mb-1">Handpicked</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-900">Featured Products</h2>
-            </div>
-            <Link to="/products"
-              className="hidden sm:flex items-center gap-1 text-purple-600 font-semibold hover:text-purple-700 text-sm bg-white border border-purple-200 px-4 py-2 rounded-xl transition-colors hover:border-purple-400">
-              View All →
-            </Link>
-          </div>
-
-          {loading ? (
-            <HomeSkeleton />
-          ) : featured.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
-              {featured.map(product => (
-                <Link key={product.id} to={`/products/${product.slug}`}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group active:scale-95 border border-gray-100 hover:border-purple-200">
-                  {/* Image */}
-                  <div className="bg-linear-to-br from-purple-50 to-pink-50 h-36 sm:h-48 flex items-center justify-center overflow-hidden relative">
-                    {product.image
-                      ? <img src={getProductImageUrl(product.image)} alt={product.name}
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      : <span className="text-5xl">🧴</span>}
-                    {product.discount_percent > 0 && (
-                      <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        -{product.discount_percent}%
-                      </span>
-                    )}
+        {/* ── HERO ── */}
+        <section style={{ background: '#F4EDE4', borderBottom: '1px solid #E6DDD3', overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'repeating-linear-gradient(90deg,rgba(184,137,90,0.04) 0px,rgba(184,137,90,0.04) 1px,transparent 1px,transparent 80px)' }} />
+          <div className="container-luxury">
+            <div className="home-hero">
+              <div className="home-hero-pad">
+                <Reveal>
+                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: '#B8895A', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', fontWeight: 400 }}>
+                    <span style={{ width: '24px', height: '1px', background: '#B8895A', display: 'inline-block', flexShrink: 0 }} />
+                    Science-backed skincare
                   </div>
-                  {/* Info */}
-                  <div className="p-3 sm:p-4">
-                    <p className="text-xs text-purple-600 font-bold mb-0.5 truncate">{product.brand}</p>
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-800 mb-2 line-clamp-2 leading-snug">{product.name}</h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-purple-700 font-black text-sm sm:text-base">Rs. {product.discounted_price}</span>
-                      {product.discount_percent > 0 && (
-                        <span className="text-gray-400 text-xs line-through">Rs. {product.price}</span>
-                      )}
-                    </div>
+                </Reveal>
+                <Reveal delay={1}>
+                  <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(30px,4vw,54px)', color: '#16100C', fontWeight: 400, letterSpacing: '-0.025em', lineHeight: 1.1, marginBottom: '20px' }}>
+                    Know Your Skin.<br />
+                    <em style={{ color: '#B8895A' }}>Glow Better.</em>
+                  </h1>
+                </Reveal>
+                <Reveal delay={2}>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 'clamp(14px,1.5vw,15px)', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, maxWidth: '400px', marginBottom: '32px' }}>
+                    Personalized skincare powered by AI. Discover your skin type and find formulas crafted precisely for you.
+                  </p>
+                </Reveal>
+                <Reveal delay={3}>
+                  <div className="home-cta-btns">
+                    <Link to="/skin-analysis" className="btn-primary" style={{ gap: '10px' }}>
+                      <FlaskConical size={15} strokeWidth={1.5} /> Analyze My Skin
+                    </Link>
+                    <Link to="/products" className="btn-outline" style={{ gap: '8px' }}>
+                      Shop Products <ArrowRight size={14} strokeWidth={1.5} />
+                    </Link>
                   </div>
-                </Link>
-              ))}
+                </Reveal>
+                <Reveal delay={4}>
+                  <div className="home-stats" style={{ marginTop: '40px', paddingTop: '28px', borderTop: '1px solid #E6DDD3' }}>
+                    {[{ value: '500+', label: 'Products' }, { value: '96%', label: 'AI Accuracy' }, { value: '30s', label: 'Analysis Time' }].map(({ value, label }) => (
+                      <div key={label}>
+                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(18px,2.5vw,22px)', color: '#16100C', fontWeight: 400, lineHeight: 1 }}>{value}</p>
+                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: '4px', fontWeight: 400 }}>{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Reveal>
+              </div>
+
+              {/* Right panel — hidden on mobile */}
+              <div className="home-hero-right" style={{ background: '#EBD9C6', position: 'relative', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'absolute', width: '480px', height: '480px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.15)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+                <div style={{ position: 'absolute', width: '340px', height: '340px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.2)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
+                <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '40px' }}>
+                  <div style={{ background: '#FFFFFF', padding: '28px 32px', border: '1px solid #E6DDD3', marginBottom: '16px', minWidth: '240px' }}>
+                    <FlaskConical size={28} strokeWidth={1.5} style={{ color: '#B8895A', marginBottom: '12px' }} />
+                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '17px', color: '#16100C', marginBottom: '8px', fontWeight: 400 }}>Free Skin Analysis</p>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#7B6458', lineHeight: 1.6, fontWeight: 300, marginBottom: '18px' }}>AI-powered. Results in 30 seconds.</p>
+                    <Link to="/skin-analysis" className="btn-accent" style={{ fontSize: '10.5px', padding: '10px 20px', width: '100%', justifyContent: 'center' }}>Start Analysis</Link>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {['Clinically Tested', 'Dermatologist Approved'].map(label => (
+                      <span key={label} style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7B6458', background: 'rgba(255,255,255,0.85)', border: '1px solid #E6DDD3', padding: '4px 10px', fontWeight: 400 }}>{label}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="text-center text-gray-400 py-16">No featured products found.</div>
-          )}
-
-          {/* Mobile "View All" */}
-          <div className="mt-5 sm:hidden">
-            <Link to="/products"
-              className="flex items-center justify-center gap-2 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl active:scale-95 transition-all">
-              Browse All Products →
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── SHOP BY SKIN TYPE ── */}
-      <section className="py-12 sm:py-16 px-5">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-6 sm:mb-10">
-            <p className="text-purple-600 text-xs font-bold uppercase tracking-widest mb-1">Curated For You</p>
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900">Shop By Skin Type</h2>
-          </div>
-          {/* Mobile: horizontal scroll, Desktop: grid */}
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-5 sm:overflow-visible scrollbar-hide">
-            {[
-              { type: 'oily',        emoji: '💧', label: 'Oily',        color: 'bg-amber-50   border-amber-200   text-amber-700   hover:bg-amber-100'   },
-              { type: 'dry',         emoji: '🌵', label: 'Dry',         color: 'bg-sky-50     border-sky-200     text-sky-700     hover:bg-sky-100'     },
-              { type: 'normal',      emoji: '✨', label: 'Normal',      color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' },
-              { type: 'combination', emoji: '🌓', label: 'Combination', color: 'bg-violet-50  border-violet-200  text-violet-700  hover:bg-violet-100'  },
-              { type: 'sensitive',   emoji: '🌸', label: 'Sensitive',   color: 'bg-rose-50    border-rose-200    text-rose-700    hover:bg-rose-100'    },
-            ].map(s => (
-              <Link key={s.type} to={`/products?skin_type=${s.type}`}
-                className={`shrink-0 flex flex-col items-center gap-2.5 px-5 py-4 sm:py-5 rounded-2xl border-2 font-bold text-sm transition-all hover:shadow-md active:scale-95 ${s.color}`}>
-                <span className="text-3xl">{s.emoji}</span>
-                <span className="whitespace-nowrap">{s.label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA BANNER ── */}
-      <section className="py-16 sm:py-24 px-5 bg-linear-to-br from-purple-700 via-purple-600 to-pink-500 text-white text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl pointer-events-none" />
-        <div className="relative">
-          <p className="text-yellow-300 font-bold text-xs uppercase tracking-widest mb-3">It's 100% Free</p>
-          <h2 className="text-3xl sm:text-5xl font-black mb-4 leading-tight">Ready to Glow?</h2>
-          <p className="text-purple-100 text-base sm:text-lg mb-8 max-w-sm mx-auto leading-relaxed">
-            Start your skin analysis today — takes only 30 seconds!
-          </p>
-          <Link to="/skin-analysis"
-            className="inline-block bg-white text-purple-700 font-black px-10 py-4 rounded-2xl hover:bg-yellow-50 active:scale-95 transition-all text-base sm:text-lg shadow-2xl shadow-purple-900/40">
-            ✨ Get Started Free
-          </Link>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="bg-gray-950 text-gray-400 px-5 pt-12 pb-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-8 mb-10">
-            {/* Brand */}
-            <div className="max-w-xs">
-              <p className="text-xl font-black text-white mb-2">✨ SkinCare</p>
-              <p className="text-sm text-gray-500 leading-relaxed">
-                Your AI-powered skincare companion. Know your skin, glow better.
-              </p>
-            </div>
-
-            {/* Links */}
-            <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm">
+        {/* ── TRUST BAR ── */}
+        <div style={{ background: '#F4EDE4', borderBottom: '1px solid #E6DDD3', padding: '18px 0' }}>
+          <div className="container-luxury">
+            <div className="home-trust-grid">
               {[
-                { to: '/products',      label: 'Products'      },
-                { to: '/skin-analysis', label: 'Skin Analysis' },
-                { to: '/cart',          label: 'Cart'          },
-                { to: '/orders',        label: 'Orders'        },
-                { to: '/wishlist',      label: 'Wishlist'      },
-                { to: '/profile',       label: 'Profile'       },
-              ].map(({ to, label }) => (
-                <Link key={to} to={to} className="text-gray-500 hover:text-white transition-colors">{label}</Link>
+                { icon: <Truck       size={17} strokeWidth={1.5} />, label: 'Free Shipping above Rs. 2000' },
+                { icon: <RefreshCw   size={17} strokeWidth={1.5} />, label: 'Easy 30-Day Returns'          },
+                { icon: <ShieldCheck size={17} strokeWidth={1.5} />, label: '100% Genuine Products'        },
+                { icon: <FlaskConical size={17} strokeWidth={1.5} />, label: 'Clinically Formulated'       },
+              ].map(({ icon, label }) => (
+                <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
+                  <span style={{ color: '#B8895A' }}>{icon}</span>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7B6458', fontWeight: 400 }}>{label}</span>
+                </div>
               ))}
             </div>
           </div>
-
-          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-xs text-gray-600">© 2026 SkinCare App. All rights reserved.</p>
-            <p className="text-xs text-gray-700">Made with ❤️ for healthy skin</p>
-          </div>
         </div>
-      </footer>
 
-    </div>
+        {/* ── FEATURED PRODUCTS ── */}
+        <section style={{ padding: 'clamp(48px,8vw,96px) 0' }}>
+          <div className="container-luxury">
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 'clamp(28px,4vw,48px)', flexWrap: 'wrap', gap: '16px' }}>
+              <Reveal>
+                <div>
+                  <div className="section-eyebrow">Featured</div>
+                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(24px,3vw,38px)', color: '#16100C', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Bestselling Products</h2>
+                </div>
+              </Reveal>
+              <Link to="/products" className="btn-ghost" style={{ gap: '6px', fontSize: '12px' }}>View All <ArrowRight size={14} strokeWidth={1.5} /></Link>
+            </div>
+            {loading ? <HomeSkeleton /> : featured.length > 0 ? (
+              <div className="home-featured-grid">
+                {featured.map(product => <ProductCard key={product.id} product={product} />)}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '80px 0', fontFamily: "'DM Sans',sans-serif", fontSize: '14px', color: '#AA9688' }}>No featured products found.</div>
+            )}
+          </div>
+        </section>
+
+        {/* ── FEATURES ── */}
+        <section style={{ padding: 'clamp(40px,6vw,72px) 0', background: '#F4EDE4', borderTop: '1px solid #E6DDD3', borderBottom: '1px solid #E6DDD3' }}>
+          <div className="container-luxury">
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(32px,4vw,56px)' }}>
+              <Reveal><div className="section-eyebrow" style={{ justifyContent: 'center' }}>Why SkinCare</div></Reveal>
+              <Reveal delay={1}><h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,36px)', color: '#16100C', fontWeight: 400 }}>Everything for Healthy Skin</h2></Reveal>
+            </div>
+            <div className="home-features">
+              {features.map((f, i) => (
+                <Reveal key={f.title} delay={i + 1}>
+                  <div style={{ background: '#FFFFFF', padding: 'clamp(28px,4vw,48px) clamp(20px,3vw,40px)', height: '100%' }}>
+                    <div style={{ width: '48px', height: '48px', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B8895A', marginBottom: '20px', background: '#FAF8F5', flexShrink: 0 }}>{f.icon}</div>
+                    <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(16px,2vw,18px)', color: '#16100C', fontWeight: 400, marginBottom: '10px' }}>{f.title}</h3>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13.5px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300 }}>{f.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── HOW IT WORKS ── */}
+        <section style={{ padding: 'clamp(48px,8vw,96px) 0' }}>
+          <div className="container-luxury">
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(36px,5vw,64px)' }}>
+              <Reveal><div className="section-eyebrow" style={{ justifyContent: 'center' }}>Simple Process</div></Reveal>
+              <Reveal delay={1}><h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,36px)', color: '#16100C', fontWeight: 400 }}>How It Works</h2></Reveal>
+            </div>
+            <div className="home-how">
+              <span className="home-how-line" />
+              {[
+                { step: '01', icon: <FlaskConical size={20} strokeWidth={1.5} />, title: 'Upload Photo',  desc: 'Clear face photo in natural lighting.'          },
+                { step: '02', icon: <Sparkles     size={20} strokeWidth={1.5} />, title: 'AI Analyzes',   desc: 'Our model reads your skin with 96% accuracy.'   },
+                { step: '03', icon: <ShieldCheck  size={20} strokeWidth={1.5} />, title: 'Get Results',   desc: 'Receive your detailed skin profile instantly.'   },
+                { step: '04', icon: <Package      size={20} strokeWidth={1.5} />, title: 'Shop Products', desc: 'Buy products formulated exactly for your skin.'  },
+              ].map((s, i) => (
+                <Reveal key={s.step} delay={i + 1}>
+                  <div style={{ textAlign: 'center', padding: '0 clamp(8px,2vw,24px)', position: 'relative', zIndex: 1 }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '1px solid #B8895A', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B8895A', margin: '0 auto 20px' }}>{s.icon}</div>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: '6px', fontWeight: 400 }}>Step {s.step}</p>
+                    <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(14px,1.8vw,16px)', color: '#16100C', fontWeight: 400, marginBottom: '8px' }}>{s.title}</h3>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#7B6458', lineHeight: 1.65, fontWeight: 300 }}>{s.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+            <Reveal delay={2}>
+              <div style={{ textAlign: 'center', marginTop: 'clamp(32px,4vw,56px)' }}>
+                <Link to="/skin-analysis" className="btn-accent" style={{ gap: '10px' }}>
+                  <FlaskConical size={15} strokeWidth={1.5} /> Try It Free Now
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* ── SKIN TYPE ── */}
+        <section style={{ padding: 'clamp(40px,6vw,72px) 0', background: '#F4EDE4', borderTop: '1px solid #E6DDD3', borderBottom: '1px solid #E6DDD3' }}>
+          <div className="container-luxury">
+            <div style={{ textAlign: 'center', marginBottom: 'clamp(28px,4vw,48px)' }}>
+              <Reveal><div className="section-eyebrow" style={{ justifyContent: 'center' }}>Curated For You</div></Reveal>
+              <Reveal delay={1}><h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,36px)', color: '#16100C', fontWeight: 400 }}>Shop By Skin Type</h2></Reveal>
+            </div>
+            <div className="home-skin-grid">
+              {skinTypes.map((s, i) => (
+                <Reveal key={s.type} delay={i + 1}>
+                  <SkinTypeCard {...s} />
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA ── */}
+        <section style={{ background: '#16100C', padding: 'clamp(56px,8vw,96px) 0', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '400px', height: '400px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.12)', pointerEvents: 'none' }} />
+          <div className="container-luxury" style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+            <Reveal>
+              <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: '16px', fontWeight: 400 }}>It's 100% Free</p>
+            </Reveal>
+            <Reveal delay={1}>
+              <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(28px,4vw,50px)', color: '#FAF8F5', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '16px' }}>
+                Ready to <em style={{ color: '#B8895A' }}>Glow?</em>
+              </h2>
+            </Reveal>
+            <Reveal delay={2}>
+              <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 'clamp(13px,1.5vw,15px)', color: '#6A5A50', lineHeight: 1.7, fontWeight: 300, maxWidth: '400px', margin: '0 auto 36px' }}>
+                Start your skin analysis today — takes only 30 seconds and is completely free.
+              </p>
+            </Reveal>
+            <Reveal delay={3}>
+              <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link to="/skin-analysis" className="btn-accent" style={{ gap: '10px', padding: '15px 36px' }}>
+                  <FlaskConical size={16} strokeWidth={1.5} /> Get Started Free
+                </Link>
+                <Link to="/products" className="btn-outline"
+                  style={{ color: '#C8B49A', borderColor: 'rgba(255,255,255,0.18)', gap: '8px' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#FAF8F5' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C8B49A' }}
+                >
+                  Browse Products <ArrowRight size={14} strokeWidth={1.5} />
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+      </div>
+    </>
   )
 }

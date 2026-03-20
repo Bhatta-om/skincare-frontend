@@ -1,137 +1,243 @@
-// src/pages/admin/AdminLayout.jsx
-import React, { useState } from 'react'
+// src/pages/admin/AdminLayout.jsx — Professional Dark Admin
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import {
+  LayoutDashboard, ShoppingBag, Users, Package,
+  FolderOpen, AlertTriangle, Upload, LogOut,
+  Menu, X, ChevronLeft, ExternalLink, FlaskConical,
+} from 'lucide-react'
+
+// ── Shared design tokens — import { A } from './AdminLayout' in all admin pages
+export const A = {
+  bg:        '#0D0D0D',
+  surface:   '#141414',
+  border:    '#1E1E1E',
+  border2:   '#252525',
+  muted:     '#3A3A3A',
+  subtle:    '#4A4A4A',
+  text:      '#E8E0D8',
+  textMid:   '#8A8078',
+  textDim:   '#4A4540',
+  accent:    '#B8895A',
+  accentHov: '#C49A6A',
+  danger:    '#963838',
+  success:   '#4A7A57',
+  warning:   '#89670F',
+  info:      '#2B5FA6',
+  serif:     "'Playfair Display', serif",
+  sans:      "'DM Sans', 'Inter', sans-serif",
+}
 
 const navItems = [
-  { path: '/admin',                label: 'Dashboard',   icon: '📊' },
-  { path: '/admin/orders',         label: 'Orders',      icon: '📦' },
-  { path: '/admin/users',          label: 'Users',       icon: '👥' },
-  { path: '/admin/products',       label: 'Products',    icon: '🧴' },
-  { path: '/admin/categories',     label: 'Categories',  icon: '📂' },
-  { path: '/admin/products/stats', label: 'Stock Alerts',icon: '⚠️' },
-  { path: '/admin/bulk-import', label: 'Bulk Import', icon: '📤' },
+  { path: '/admin',                label: 'Dashboard',    icon: LayoutDashboard },
+  { path: '/admin/orders',         label: 'Orders',       icon: ShoppingBag     },
+  { path: '/admin/users',          label: 'Users',        icon: Users           },
+  { path: '/admin/products',       label: 'Products',     icon: Package         },
+  { path: '/admin/categories',     label: 'Categories',   icon: FolderOpen      },
+  { path: '/admin/products/stats', label: 'Stock Alerts', icon: AlertTriangle   },
+  { path: '/admin/skin-analysis',  label: 'Skin Analysis',icon: FlaskConical    },
+  { path: '/admin/bulk-import',    label: 'Bulk Import',  icon: Upload          },
 ]
 
 export default function AdminLayout({ children }) {
   const { user, logout }            = useAuth()
   const location                    = useLocation()
-  const [collapsed, setCollapsed]   = useState(false)
+  const [collapsed,  setCollapsed]  = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const isActive = (path) => {
-    if (path === '/admin') return location.pathname === '/admin'
-    return location.pathname.startsWith(path)
-  }
+  // Close drawer on route change
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
+  const isActive = (path) =>
+    path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(path)
 
   const currentLabel = navItems.find(n => isActive(n.path))?.label || 'Admin'
+  const initials     = user?.first_name?.[0]?.toUpperCase() || 'A'
+
+  const NavLink = ({ item }) => {
+    const Icon   = item.icon
+    const active = isActive(item.path)
+    return (
+      <Link to={item.path} style={{
+        display:       'flex',
+        alignItems:    'center',
+        gap:           collapsed ? 0 : '10px',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding:       collapsed ? '10px' : '10px 12px',
+        borderRadius:  '6px',
+        fontFamily:    A.sans,
+        fontSize:      '12.5px',
+        fontWeight:    400,
+        letterSpacing: '0.01em',
+        color:         active ? A.accent : A.textMid,
+        background:    active ? 'rgba(184,137,90,0.1)' : 'transparent',
+        borderLeft:    active ? `2px solid ${A.accent}` : '2px solid transparent',
+        textDecoration:'none',
+        transition:    'all 0.15s ease',
+        whiteSpace:    'nowrap',
+        overflow:      'hidden',
+      }}
+        onMouseEnter={e => { if (!active) { e.currentTarget.style.color = A.text; e.currentTarget.style.background = 'rgba(255,255,255,0.04)' } }}
+        onMouseLeave={e => { if (!active) { e.currentTarget.style.color = A.textMid; e.currentTarget.style.background = 'transparent' } }}
+      >
+        <Icon size={16} strokeWidth={1.5} style={{ flexShrink: 0 }} />
+        {!collapsed && <span>{item.label}</span>}
+      </Link>
+    )
+  }
+
+  const SidebarContent = ({ mobile = false }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Logo */}
+      <div style={{ padding: '20px 16px', borderBottom: `1px solid ${A.border}`, display: 'flex', alignItems: 'center', justifyContent: collapsed && !mobile ? 'center' : 'space-between', gap: '10px', flexShrink: 0 }}>
+        {(!collapsed || mobile) && (
+          <div>
+            <span style={{ fontFamily: A.serif, fontSize: '17px', color: A.text, letterSpacing: '0.06em', fontWeight: 500 }}>SKINCARE</span>
+            <span style={{ fontFamily: A.sans, fontSize: '9px', color: A.accent, textTransform: 'uppercase', letterSpacing: '0.16em', display: 'block', marginTop: '1px', fontWeight: 400 }}>Admin Panel</span>
+          </div>
+        )}
+        {mobile ? (
+          <button onClick={() => setMobileOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.textMid, display: 'flex', padding: '4px' }}>
+            <X size={18} strokeWidth={1.5} />
+          </button>
+        ) : (
+          <button onClick={() => setCollapsed(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.textMid, display: 'flex', padding: '4px', transition: 'color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.color = A.text}
+            onMouseLeave={e => e.currentTarget.style.color = A.textMid}
+          >
+            <ChevronLeft size={16} strokeWidth={1.5} style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.25s ease' }} />
+          </button>
+        )}
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {navItems.map(item => <NavLink key={item.path} item={item} />)}
+      </nav>
+
+      {/* User + logout */}
+      <div style={{ borderTop: `1px solid ${A.border}`, padding: '12px 8px', flexShrink: 0 }}>
+        {(!collapsed || mobile) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', marginBottom: '4px' }}>
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(184,137,90,0.15)', border: '1px solid rgba(184,137,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: A.serif, fontSize: '13px', color: A.accent, flexShrink: 0 }}>
+              {initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontFamily: A.sans, fontSize: '12px', color: A.text, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.first_name} {user?.last_name}
+              </p>
+              <p style={{ fontFamily: A.sans, fontSize: '10.5px', color: A.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 300 }}>
+                {user?.email}
+              </p>
+            </div>
+          </div>
+        )}
+        <button onClick={logout} style={{
+          display: 'flex', alignItems: 'center', gap: collapsed && !mobile ? 0 : '8px',
+          justifyContent: collapsed && !mobile ? 'center' : 'flex-start',
+          width: '100%', padding: '9px 12px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          fontFamily: A.sans, fontSize: '12px',
+          color: A.danger, borderRadius: '6px',
+          transition: 'background 0.15s ease',
+        }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(150,56,56,0.1)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <LogOut size={15} strokeWidth={1.5} />
+          {(!collapsed || mobile) && <span>Sign Out</span>}
+        </button>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
+    <div style={{ minHeight: '100vh', background: A.bg, display: 'flex', fontFamily: A.sans }}>
 
-      {/* ── Sidebar Desktop ── */}
-      <aside className={`hidden md:flex flex-col bg-gray-900 border-r border-gray-800 transition-all duration-300 ${collapsed ? 'w-16' : 'w-56'}`}>
-
-        <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-800 ${collapsed ? 'justify-center' : ''}`}>
-          <span className="text-2xl">✨</span>
-          {!collapsed && <span className="text-white font-bold text-lg tracking-tight">SkinCare</span>}
-        </div>
-
-        <nav className="flex-1 py-4 space-y-1 px-2">
-          {navItems.map(item => (
-            <Link key={item.path} to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
-                isActive(item.path)
-                  ? 'bg-purple-600 text-white'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              } ${collapsed ? 'justify-center' : ''}`}>
-              <span className="text-lg shrink-0">{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="border-t border-gray-800 p-3 space-y-2">
-          {!collapsed && (
-            <div className="flex items-center gap-2 px-2 py-2">
-              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0">
-                {user?.first_name?.[0]?.toUpperCase() || 'A'}
-              </div>
-              <div className="min-w-0">
-                <p className="text-white text-xs font-medium truncate">{user?.first_name} {user?.last_name}</p>
-                <p className="text-gray-500 text-xs truncate">{user?.email}</p>
-              </div>
-            </div>
-          )}
-          <button onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-center text-gray-500 hover:text-white text-xs py-1.5 rounded-lg hover:bg-gray-800 transition-colors">
-            {collapsed ? '→' : '← Collapse'}
-          </button>
-          <button onClick={logout}
-            className={`w-full flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-gray-800 text-xs py-2 px-3 rounded-lg transition-colors ${collapsed ? 'justify-center' : ''}`}>
-            <span>🚪</span>
-            {!collapsed && <span>Logout</span>}
-          </button>
-        </div>
+      {/* ── Desktop Sidebar ── */}
+      <aside style={{
+        display:       'none',
+        flexDirection: 'column',
+        background:    A.surface,
+        borderRight:   `1px solid ${A.border}`,
+        width:         collapsed ? '56px' : '220px',
+        transition:    'width 0.25s ease',
+        flexShrink:    0,
+        position:      'sticky',
+        top:           0,
+        height:        '100vh',
+        overflowY:     'auto',
+      }}
+        className="admin-sidebar-desktop"
+      >
+        <SidebarContent />
       </aside>
 
-      {/* ── Mobile Sidebar ── */}
+      {/* ── Mobile Overlay ── */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-56 bg-gray-900 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">✨</span>
-                <span className="text-white font-bold">SkinCare</span>
-              </div>
-              <button onClick={() => setMobileOpen(false)} className="text-gray-400 text-xl">✕</button>
-            </div>
-            <nav className="flex-1 py-4 space-y-1 px-2">
-              {navItems.map(item => (
-                <Link key={item.path} to={item.path}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    isActive(item.path) ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  }`}>
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-            <div className="border-t border-gray-800 p-3">
-              <button onClick={logout} className="w-full flex items-center gap-2 text-red-400 text-sm py-2 px-3 rounded-lg hover:bg-gray-800">
-                <span>🚪</span><span>Logout</span>
-              </button>
-            </div>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 60 }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(2px)' }}
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '240px', background: A.surface, borderRight: `1px solid ${A.border}`, display: 'flex', flexDirection: 'column' }}>
+            <SidebarContent mobile />
           </aside>
         </div>
       )}
 
-      {/* ── Main ── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="md:hidden text-gray-400 text-xl">☰</button>
+      {/* ── Main Content ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+
+        {/* Header */}
+        <header style={{ background: A.surface, borderBottom: `1px solid ${A.border}`, padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Mobile menu button */}
+            <button onClick={() => setMobileOpen(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.textMid, display: 'flex', padding: '4px' }}
+              className="admin-mobile-menu-btn"
+            >
+              <Menu size={20} strokeWidth={1.5} />
+            </button>
             <div>
-              <h1 className="text-white font-bold text-lg">{currentLabel}</h1>
-              <p className="text-gray-500 text-xs hidden sm:block">SkinCare Admin Panel</p>
+              <h1 style={{ fontFamily: A.sans, fontSize: '14px', color: A.text, fontWeight: 500, letterSpacing: '0.02em' }}>{currentLabel}</h1>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/" target="_blank"
-              className="text-gray-400 hover:text-white text-sm border border-gray-700 px-3 py-1.5 rounded-lg hover:border-gray-500 transition-colors">
-              View Site →
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link to="/" target="_blank" style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              fontFamily: A.sans, fontSize: '11.5px', color: A.textMid,
+              textDecoration: 'none', border: `1px solid ${A.border2}`,
+              padding: '6px 12px', borderRadius: '4px',
+              transition: 'all 0.15s ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.color = A.text; e.currentTarget.style.borderColor = A.accent }}
+              onMouseLeave={e => { e.currentTarget.style.color = A.textMid; e.currentTarget.style.borderColor = A.border2 }}
+            >
+              View Site <ExternalLink size={12} strokeWidth={1.5} />
             </Link>
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-              {user?.first_name?.[0]?.toUpperCase() || 'A'}
+            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(184,137,90,0.15)', border: '1px solid rgba(184,137,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: A.serif, fontSize: '13px', color: A.accent }}>
+              {initials}
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
+
+        {/* Page content */}
+        <main style={{ flex: 1, overflowY: 'auto', padding: '28px 24px' }}>
           {children}
         </main>
       </div>
+
+      {/* Responsive CSS */}
+      <style>{`
+        .admin-sidebar-desktop { display: none !important; }
+        .admin-mobile-menu-btn { display: flex !important; }
+        @media (min-width: 768px) {
+          .admin-sidebar-desktop { display: flex !important; }
+          .admin-mobile-menu-btn { display: none !important; }
+        }
+      `}</style>
     </div>
   )
 }

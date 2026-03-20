@@ -1,24 +1,82 @@
-// src/pages/admin/AdminProductForm.jsx
+// src/pages/admin/AdminProductForm.jsx — Professional Dark Admin
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import api from '../../api/axios'
-import AdminLayout from './AdminLayout'
+import AdminLayout, { A } from './AdminLayout'
 import { getProductImageUrl } from '../../utils/productImage'
+import { ArrowLeft, Upload, Plus } from 'lucide-react'
 
-const SKIN_TYPES    = ['oily', 'dry', 'normal', 'combination', 'sensitive', 'all']
-const SKIN_CONCERNS = ['acne', 'aging', 'brightening', 'hydration', 'pigmentation', 'sensitivity', 'general']
-const GENDERS       = ['male', 'female', 'unisex']
+const SKIN_TYPES    = ['oily','dry','normal','combination','sensitive','all']
+const SKIN_CONCERNS = ['acne','aging','brightening','hydration','pigmentation','sensitivity','general']
+const GENDERS       = ['male','female','unisex']
 
-const Field = ({ label, error, children }) => (
+const AdminToast = ({ message }) => message.text ? (
+  <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: message.type === 'success' ? A.success : A.danger, color: '#FFFFFF', padding: '12px 20px', fontFamily: A.sans, fontSize: '13px', fontWeight: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+    {message.text}
+  </div>
+) : null
+
+const inp     = { width: '100%', background: '#1A1A1A', border: `1px solid ${A.border2}`, color: A.text, padding: '10px 14px', fontFamily: A.sans, fontSize: '12.5px', outline: 'none', transition: 'border-color 0.15s', fontWeight: 300, boxSizing: 'border-box' }
+const inpFocus = (e) => e.target.style.borderColor = A.accent
+const inpBlur  = (e) => e.target.style.borderColor = A.border2
+
+const Field = ({ label, error, required, children }) => (
   <div>
-    <label className="block text-gray-400 text-sm font-medium mb-1.5">{label}</label>
+    <label style={{ display: 'block', fontFamily: A.sans, fontSize: '10px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '6px', fontWeight: 400 }}>
+      {label}{required && <span style={{ color: A.danger, marginLeft: '3px' }}>*</span>}
+    </label>
     {children}
-    {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+    {error && <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.danger, marginTop: '4px', fontWeight: 300 }}>{error}</p>}
   </div>
 )
 
-const inputCls  = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
-const selectCls = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500"
+const SectionCard = ({ title, children }) => (
+  <div style={{ background: A.surface, border: `1px solid ${A.border}`, overflow: 'hidden' }}>
+    <div style={{ padding: '12px 18px', borderBottom: `1px solid ${A.border}`, background: A.bg }}>
+      <h3 style={{ fontFamily: A.sans, fontSize: '10.5px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 400 }}>{title}</h3>
+    </div>
+    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>{children}</div>
+  </div>
+)
+
+const Toggle = ({ name, label, desc, value, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div>
+      <p style={{ fontFamily: A.sans, fontSize: '12.5px', color: A.text, fontWeight: 400 }}>{label}</p>
+      <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300, marginTop: '1px' }}>{desc}</p>
+    </div>
+    <div onClick={() => onChange({ target: { name, type: 'checkbox', checked: !value } })}
+      style={{ width: '40px', height: '22px', borderRadius: '11px', background: value ? A.accent : A.border2, position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', top: '3px', left: value ? '21px' : '3px', width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', transition: 'left 0.2s' }} />
+    </div>
+  </div>
+)
+
+const ImageUpload = ({ field, label, preview, required, error, onImage }) => (
+  <Field label={label} error={error} required={required}>
+    <label style={{ display: 'block', cursor: 'pointer' }}>
+      <div style={{ border: `1.5px dashed ${error ? A.danger : preview ? A.accent : A.border2}`, overflow: 'hidden', transition: 'border-color 0.15s', minHeight: '90px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {preview ? (
+          <div style={{ position: 'relative', width: '100%' }}>
+            <img src={preview} alt={label} style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+            >
+              <span style={{ fontFamily: A.sans, fontSize: '11px', color: '#FFFFFF' }}>Click to change</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '20px' }}>
+            <Upload size={18} strokeWidth={1.5} style={{ color: A.textDim }} />
+            <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim }}>Click to upload</span>
+          </div>
+        )}
+      </div>
+      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => onImage(e, field)} />
+    </label>
+  </Field>
+)
 
 export default function AdminProductForm() {
   const { slug } = useParams()
@@ -26,345 +84,221 @@ export default function AdminProductForm() {
   const isEdit   = Boolean(slug)
 
   const [categories, setCategories] = useState([])
-  const [loading, setLoading]       = useState(false)
-  const [fetching, setFetching]     = useState(isEdit)
-  const [errors, setErrors]         = useState({})
-  const [message, setMessage]       = useState({ text: '', type: '' })
-  const [previews, setPreviews]     = useState({ image: null, image_2: null, image_3: null })
+  const [loading,    setLoading]    = useState(false)
+  const [fetching,   setFetching]   = useState(isEdit)
+  const [errors,     setErrors]     = useState({})
+  const [message,    setMessage]    = useState({ text: '', type: '' })
+  const [previews,   setPreviews]   = useState({ image: null, image_2: null, image_3: null })
 
   const [form, setForm] = useState({
-    name:                '',
-    brand:               '',
-    category:            '',
-    description:         '',
-    ingredients:         '',
-    price:               '',
-    discount_percent:    '0',
-    suitable_skin_type:  'all',
-    skin_concern:        'general',
-    min_age:             '13',
-    max_age:             '65',
-    gender:              'unisex',
-    stock:               '0',
-    low_stock_threshold: '10',
-    is_available:        true,
-    is_featured:         false,
-    image:               null,
-    image_2:             null,
-    image_3:             null,
+    name: '', brand: '', category: '', description: '', ingredients: '',
+    price: '', discount_percent: '0', suitable_skin_type: 'all',
+    skin_concern: 'general', min_age: '13', max_age: '65', gender: 'unisex',
+    stock: '0', low_stock_threshold: '10',
+    is_available: true, is_featured: false,
+    image: null, image_2: null, image_3: null,
   })
 
-  // Fetch categories
-  const fetchCategories = () => {
-    api.get('/products/categories/').then(res => {
-      setCategories(res.data.results || res.data || [])
-    })
-  }
+  useEffect(() => { api.get('/products/categories/').then(res => setCategories(res.data.results || res.data || [])) }, [])
 
-  useEffect(() => { fetchCategories() }, [])
-
-  // Fetch product if editing
   useEffect(() => {
     if (!isEdit) return
-    api.get(`/products/${slug}/`)
-      .then(res => {
-        const p = res.data.product || res.data
-        setForm({
-          name:                p.name || '',
-          brand:               p.brand || '',
-          category:            p.category?.id || '',
-          description:         p.description || '',
-          ingredients:         p.ingredients || '',
-          price:               p.price || '',
-          discount_percent:    p.discount_percent || '0',
-          suitable_skin_type:  p.suitable_skin_type || 'all',
-          skin_concern:        p.skin_concern || 'general',
-          min_age:             p.min_age || '13',
-          max_age:             p.max_age || '65',
-          gender:              p.gender || 'unisex',
-          stock:               p.stock || '0',
-          low_stock_threshold: p.low_stock_threshold || '10',
-          is_available:        p.is_available ?? true,
-          is_featured:         p.is_featured ?? false,
-          image:               null,
-          image_2:             null,
-          image_3:             null,
-        })
-        if (p.image)   setPreviews(prev => ({ ...prev, image:   getProductImageUrl(p.image) }))
-        if (p.image_2) setPreviews(prev => ({ ...prev, image_2: getProductImageUrl(p.image_2) }))
-        if (p.image_3) setPreviews(prev => ({ ...prev, image_3: getProductImageUrl(p.image_3) }))
-      })
-      .catch(() => showMsg('Failed to load product.', 'error'))
-      .finally(() => setFetching(false))
+    api.get(`/products/${slug}/`).then(res => {
+      const p = res.data.product || res.data
+      setForm({ name: p.name||'', brand: p.brand||'', category: p.category?.id||'', description: p.description||'', ingredients: p.ingredients||'', price: p.price||'', discount_percent: p.discount_percent||'0', suitable_skin_type: p.suitable_skin_type||'all', skin_concern: p.skin_concern||'general', min_age: p.min_age||'13', max_age: p.max_age||'65', gender: p.gender||'unisex', stock: p.stock||'0', low_stock_threshold: p.low_stock_threshold||'10', is_available: p.is_available??true, is_featured: p.is_featured??false, image: null, image_2: null, image_3: null })
+      if (p.image)   setPreviews(pr => ({ ...pr, image:   getProductImageUrl(p.image)   }))
+      if (p.image_2) setPreviews(pr => ({ ...pr, image_2: getProductImageUrl(p.image_2) }))
+      if (p.image_3) setPreviews(pr => ({ ...pr, image_3: getProductImageUrl(p.image_3) }))
+    }).catch(() => showMsg('Failed to load product.', 'error'))
+    .finally(() => setFetching(false))
   }, [slug])
 
-  const showMsg = (text, type) => {
-    setMessage({ text, type })
-    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
-  }
-
-  const handleChange = e => {
-    const { name, value, type, checked } = e.target
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
-  }
-
-  const handleImage = (e, field) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setForm(prev => ({ ...prev, [field]: file }))
-    setPreviews(prev => ({ ...prev, [field]: URL.createObjectURL(file) }))
-  }
+  const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000) }
+  const handleChange = e => { const { name, value, type, checked } = e.target; setForm(p => ({ ...p, [name]: type === 'checkbox' ? checked : value })); if (errors[name]) setErrors(p => ({ ...p, [name]: '' })) }
+  const handleImage  = (e, field) => { const file = e.target.files[0]; if (!file) return; setForm(p => ({ ...p, [field]: file })); setPreviews(p => ({ ...p, [field]: URL.createObjectURL(file) })) }
 
   const validate = () => {
     const errs = {}
-    if (!form.name.trim())      errs.name     = 'Name is required'
-    if (!form.brand.trim())     errs.brand    = 'Brand is required'
-    if (!form.category)         errs.category = 'Category is required'
-    if (!form.price)            errs.price    = 'Price is required'
-    if (!isEdit && !form.image) errs.image    = 'Main image is required'
+    if (!form.name.trim())  errs.name     = 'Required'
+    if (!form.brand.trim()) errs.brand    = 'Required'
+    if (!form.category)     errs.category = 'Required'
+    if (!form.price)        errs.price    = 'Required'
+    if (!isEdit && !form.image) errs.image = 'Main image required'
     return errs
   }
 
   const handleSubmit = async () => {
-    const errs = validate()
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
-
+    const errs = validate(); if (Object.keys(errs).length > 0) { setErrors(errs); return }
     setLoading(true)
-    const formData = new FormData()
-
-    Object.entries(form).forEach(([key, val]) => {
-      if (val === null || val === undefined) return
-      if (['image', 'image_2', 'image_3'].includes(key) && !val) return
-      formData.append(key, val)
-    })
-
+    const fd = new FormData()
+    Object.entries(form).forEach(([k, v]) => { if (v === null || v === undefined) return; if (['image','image_2','image_3'].includes(k) && !v) return; fd.append(k, v) })
     try {
-      if (isEdit) {
-        await api.patch(`/products/${slug}/`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        showMsg('Product updated successfully!', 'success')
-      } else {
-        await api.post('/products/', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        showMsg('Product created successfully!', 'success')
-      }
+      if (isEdit) { await api.patch(`/products/${slug}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Product updated!', 'success') }
+      else        { await api.post('/products/', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Product created!', 'success') }
       setTimeout(() => navigate('/admin/products'), 1500)
     } catch (err) {
       const data = err.response?.data
-      if (data && typeof data === 'object') {
-        setErrors(data)
-        showMsg('Please fix the errors below.', 'error')
-      } else {
-        showMsg('Something went wrong. Try again.', 'error')
-      }
-    } finally {
-      setLoading(false)
-    }
+      if (data && typeof data === 'object') { setErrors(data); showMsg('Please fix the errors.', 'error') }
+      else showMsg('Something went wrong.', 'error')
+    } finally { setLoading(false) }
   }
 
   if (fetching) return (
     <AdminLayout>
-      <div className="flex justify-center py-16">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+        <div style={{ width: '32px', height: '32px', border: `1.5px solid ${A.border2}`, borderTopColor: A.accent, borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
       </div>
     </AdminLayout>
   )
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <AdminToast message={message} />
+      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-        {/* Toast */}
-        {message.text && (
-          <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium ${
-            message.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-            {message.text}
-          </div>
-        )}
-
-        {/* Page Header */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/admin/products')}
-            className="text-gray-500 hover:text-white transition-colors">← Back</button>
-          <h2 className="text-white font-bold text-xl">
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          <button onClick={() => navigate('/admin/products')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: A.sans, fontSize: '12px', color: A.textMid, padding: 0, transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = A.text}
+            onMouseLeave={e => e.currentTarget.style.color = A.textMid}
+          >
+            <ArrowLeft size={14} strokeWidth={1.5} /> Back
+          </button>
+          <span style={{ color: A.border2 }}>|</span>
+          <h2 style={{ fontFamily: A.sans, fontSize: '14px', color: A.text, fontWeight: 500, letterSpacing: '0.02em' }}>
             {isEdit ? 'Edit Product' : 'Add New Product'}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', alignItems: 'flex-start' }} className="admin-form-grid">
 
-          {/* ── Left: Main Fields ── */}
-          <div className="lg:col-span-2 space-y-5">
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-            {/* Basic Info */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Basic Info</h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Product Name *" error={errors.name}>
-                  <input name="name" value={form.name} onChange={handleChange}
-                    placeholder="e.g. Vitamin C Serum" className={inputCls} />
+            <SectionCard title="Basic Information">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <Field label="Product Name" required error={errors.name}>
+                  <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Vitamin C Serum" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
-                <Field label="Brand *" error={errors.brand}>
-                  <input name="brand" value={form.brand} onChange={handleChange}
-                    placeholder="e.g. Himalaya" className={inputCls} />
+                <Field label="Brand" required error={errors.brand}>
+                  <input name="brand" value={form.brand} onChange={handleChange} placeholder="e.g. Himalaya" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
               </div>
 
-              {/* Category with Quick Add button */}
-              <Field label="Category *" error={errors.category}>
-                <div className="flex gap-2">
-                  <select name="category" value={form.category} onChange={handleChange} className={selectCls}>
-                    <option value="">Select category</option>
-                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <Link to="/admin/categories"
-                    className="shrink-0 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2.5 rounded-xl text-xs transition-colors flex items-center gap-1 whitespace-nowrap border border-gray-600">
-                    <span>+</span> New
+              <Field label="Category" required error={errors.category}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <select name="category" value={form.category} onChange={handleChange}
+                      style={{ ...inp, appearance: 'none', paddingRight: '32px', cursor: 'pointer' }}
+                      onFocus={inpFocus} onBlur={inpBlur}
+                    >
+                      <option value="">Select category</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <Link to="/admin/categories" style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '10px 12px', border: `1px solid ${A.border2}`, background: 'transparent', color: A.textMid, textDecoration: 'none', fontFamily: A.sans, fontSize: '11px', transition: 'all 0.15s', flexShrink: 0, whiteSpace: 'nowrap' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = A.accent; e.currentTarget.style.color = A.accent }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = A.border2; e.currentTarget.style.color = A.textMid }}
+                  >
+                    <Plus size={11} strokeWidth={2} /> New
                   </Link>
                 </div>
-                {categories.length === 0 && (
-                  <p className="text-yellow-500 text-xs mt-1">
-                    ⚠️ No categories found.{' '}
-                    <Link to="/admin/categories" className="underline hover:text-yellow-400">
-                      Add categories first →
-                    </Link>
-                  </p>
-                )}
               </Field>
 
-              <Field label="Description" error={errors.description}>
-                <textarea name="description" value={form.description} onChange={handleChange}
-                  rows={4} placeholder="Product description..." className={inputCls} />
+              <Field label="Description">
+                <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="Product description..." style={{ ...inp, resize: 'vertical', minHeight: '80px' }} onFocus={inpFocus} onBlur={inpBlur} />
               </Field>
 
-              <Field label="Ingredients" error={errors.ingredients}>
-                <textarea name="ingredients" value={form.ingredients} onChange={handleChange}
-                  rows={3} placeholder="List ingredients..." className={inputCls} />
+              <Field label="Ingredients">
+                <textarea name="ingredients" value={form.ingredients} onChange={handleChange} rows={3} placeholder="Key ingredients..." style={{ ...inp, resize: 'vertical', minHeight: '60px' }} onFocus={inpFocus} onBlur={inpBlur} />
               </Field>
-            </div>
+            </SectionCard>
 
-            {/* Pricing */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Pricing & Stock</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Price (Rs.) *" error={errors.price}>
-                  <input name="price" type="number" value={form.price} onChange={handleChange}
-                    placeholder="0" className={inputCls} />
+            <SectionCard title="Pricing & Stock">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+                <Field label="Price (Rs.)" required error={errors.price}>
+                  <input name="price" type="number" value={form.price} onChange={handleChange} placeholder="0" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
-                <Field label="Discount %" error={errors.discount_percent}>
-                  <input name="discount_percent" type="number" value={form.discount_percent}
-                    onChange={handleChange} min="0" max="100" className={inputCls} />
+                <Field label="Discount %">
+                  <input name="discount_percent" type="number" value={form.discount_percent} onChange={handleChange} min="0" max="100" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
-                <Field label="Stock" error={errors.stock}>
-                  <input name="stock" type="number" value={form.stock} onChange={handleChange}
-                    min="0" className={inputCls} />
+                <Field label="Stock">
+                  <input name="stock" type="number" value={form.stock} onChange={handleChange} min="0" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
-                <Field label="Low Stock Alert" error={errors.low_stock_threshold}>
-                  <input name="low_stock_threshold" type="number" value={form.low_stock_threshold}
-                    onChange={handleChange} min="0" className={inputCls} />
+                <Field label="Low Stock Alert">
+                  <input name="low_stock_threshold" type="number" value={form.low_stock_threshold} onChange={handleChange} min="0" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
               </div>
-            </div>
+            </SectionCard>
 
-            {/* AI Matching */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">AI Matching</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Field label="Skin Type" error={errors.suitable_skin_type}>
-                  <select name="suitable_skin_type" value={form.suitable_skin_type} onChange={handleChange} className={selectCls}>
-                    {SKIN_TYPES.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+            <SectionCard title="AI Matching">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                <Field label="Skin Type">
+                  <select name="suitable_skin_type" value={form.suitable_skin_type} onChange={handleChange} style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={inpFocus} onBlur={inpBlur}>
+                    {SKIN_TYPES.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
                   </select>
                 </Field>
-                <Field label="Skin Concern" error={errors.skin_concern}>
-                  <select name="skin_concern" value={form.skin_concern} onChange={handleChange} className={selectCls}>
-                    {SKIN_CONCERNS.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+                <Field label="Skin Concern">
+                  <select name="skin_concern" value={form.skin_concern} onChange={handleChange} style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={inpFocus} onBlur={inpBlur}>
+                    {SKIN_CONCERNS.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
                   </select>
                 </Field>
-                <Field label="Gender" error={errors.gender}>
-                  <select name="gender" value={form.gender} onChange={handleChange} className={selectCls}>
-                    {GENDERS.map(g => <option key={g} value={g} className="capitalize">{g}</option>)}
+                <Field label="Gender">
+                  <select name="gender" value={form.gender} onChange={handleChange} style={{ ...inp, appearance: 'none', cursor: 'pointer' }} onFocus={inpFocus} onBlur={inpBlur}>
+                    {GENDERS.map(g => <option key={g} value={g} style={{ textTransform: 'capitalize' }}>{g.charAt(0).toUpperCase()+g.slice(1)}</option>)}
                   </select>
                 </Field>
-                <Field label="Min Age" error={errors.min_age}>
-                  <input name="min_age" type="number" value={form.min_age}
-                    onChange={handleChange} min="0" max="100" className={inputCls} />
+                <Field label="Min Age">
+                  <input name="min_age" type="number" value={form.min_age} onChange={handleChange} min="0" max="100" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
-                <Field label="Max Age" error={errors.max_age}>
-                  <input name="max_age" type="number" value={form.max_age}
-                    onChange={handleChange} min="0" max="100" className={inputCls} />
+                <Field label="Max Age">
+                  <input name="max_age" type="number" value={form.max_age} onChange={handleChange} min="0" max="100" style={inp} onFocus={inpFocus} onBlur={inpBlur} />
                 </Field>
               </div>
-            </div>
+            </SectionCard>
           </div>
 
-          {/* ── Right: Images + Settings ── */}
-          <div className="space-y-5">
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-            {/* Images */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Images</h3>
-              {[
-                { field: 'image',   label: 'Main Image *' },
-                { field: 'image_2', label: 'Image 2' },
-                { field: 'image_3', label: 'Image 3' },
-              ].map(({ field, label }) => (
-                <Field key={field} label={label} error={errors[field]}>
-                  <label className="block cursor-pointer">
-                    <div className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${
-                      errors[field] ? 'border-red-500' : 'border-gray-700 hover:border-purple-500'}`}>
-                      {previews[field] ? (
-                        <div className="relative">
-                          <img src={previews[field]} alt={label} className="w-full h-36 object-cover" />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <span className="text-white text-xs">Click to change</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="h-24 flex flex-col items-center justify-center text-gray-600 gap-1">
-                          <span className="text-2xl">📷</span>
-                          <span className="text-xs">Click to upload</span>
-                        </div>
-                      )}
-                    </div>
-                    <input type="file" accept="image/*" className="hidden"
-                      onChange={e => handleImage(e, field)} />
-                  </label>
-                </Field>
-              ))}
-            </div>
+            <SectionCard title="Product Images">
+              <ImageUpload field="image"   label="Main Image"  required preview={previews.image}   error={errors.image}   onImage={handleImage} />
+              <ImageUpload field="image_2" label="Image 2"               preview={previews.image_2} error={errors.image_2} onImage={handleImage} />
+              <ImageUpload field="image_3" label="Image 3"               preview={previews.image_3} error={errors.image_3} onImage={handleImage} />
+            </SectionCard>
 
-            {/* Settings */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
-              <h3 className="text-white font-bold text-sm border-b border-gray-800 pb-3">Settings</h3>
-              {[
-                { name: 'is_available', label: 'Available for sale', desc: 'Show in store' },
-                { name: 'is_featured',  label: 'Featured product',   desc: 'Show on homepage' },
-              ].map(({ name, label, desc }) => (
-                <label key={name} className="flex items-center justify-between cursor-pointer group">
-                  <div>
-                    <p className="text-white text-sm">{label}</p>
-                    <p className="text-gray-600 text-xs">{desc}</p>
-                  </div>
-                  <div className={`w-11 h-6 rounded-full transition-colors relative ${form[name] ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form[name] ? 'left-6' : 'left-1'}`} />
-                    <input type="checkbox" name={name} checked={form[name]} onChange={handleChange} className="hidden" />
-                  </div>
-                </label>
-              ))}
-            </div>
+            <SectionCard title="Settings">
+              <Toggle name="is_available" label="Available for Sale" desc="Show in store" value={form.is_available} onChange={handleChange} />
+              <Toggle name="is_featured"  label="Featured Product"   desc="Show on homepage" value={form.is_featured} onChange={handleChange} />
+            </SectionCard>
 
-            {/* Submit */}
-            <button onClick={handleSubmit} disabled={loading}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-3 rounded-xl font-medium transition-colors">
+            <button onClick={handleSubmit} disabled={loading} style={{
+              width: '100%', background: loading ? A.muted : A.accent,
+              color: '#FFFFFF', border: 'none', padding: '14px',
+              fontFamily: A.sans, fontSize: '11.5px', fontWeight: 400,
+              textTransform: 'uppercase', letterSpacing: '0.14em',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = A.accentHov }}
+              onMouseLeave={e => { if (!loading) e.currentTarget.style.background = A.accent }}
+            >
               {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
             </button>
           </div>
         </div>
       </div>
+
+      <style>{`
+        .admin-form-grid {
+          grid-template-columns: 1fr 300px !important;
+        }
+        @media (max-width: 900px) {
+          .admin-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </AdminLayout>
   )
 }

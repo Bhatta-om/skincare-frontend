@@ -1,62 +1,79 @@
-// src/components/SearchBox.jsx — 100% Professional Industry Standard
-
+// src/components/SearchBox.jsx — SkinMedica Luxury Redesign
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { getProductImageUrl } from '../utils/productImage'
+import {
+  Search, X, Clock, ChevronRight, Package,
+  Tag, Layers, ArrowRight, Loader,
+} from 'lucide-react'
 
-// ── Constants ──────────────────────────────────────────────
 const RECENT_KEY  = 'skincare_recent_searches'
 const MAX_RECENT  = 5
 const DEBOUNCE_MS = 320
-const MIN_CHARS   = 3   // ✅ industry standard
+const MIN_CHARS   = 3
 
-// ── LocalStorage helpers (fallback for guests) ─────────────
-const getLocalRecent = () => {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') }
-  catch { return [] }
-}
-const saveLocalRecent = (q) => {
-  if (!q?.trim() || q.trim().length < MIN_CHARS) return
-  const prev    = getLocalRecent()
-  const updated = [q.trim(), ...prev.filter(r => r.toLowerCase() !== q.trim().toLowerCase())]
-  localStorage.setItem(RECENT_KEY, JSON.stringify(updated.slice(0, MAX_RECENT)))
-}
-const removeLocalRecent = (q) => {
-  localStorage.setItem(RECENT_KEY, JSON.stringify(getLocalRecent().filter(r => r !== q)))
-}
-const clearLocalRecent = () => localStorage.removeItem(RECENT_KEY)
+const getLocalRecent    = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') } catch { return [] } }
+const saveLocalRecent   = (q) => { if (!q?.trim() || q.trim().length < MIN_CHARS) return; const prev = getLocalRecent(); const updated = [q.trim(), ...prev.filter(r => r.toLowerCase() !== q.trim().toLowerCase())]; localStorage.setItem(RECENT_KEY, JSON.stringify(updated.slice(0, MAX_RECENT))) }
+const removeLocalRecent = (q) => { localStorage.setItem(RECENT_KEY, JSON.stringify(getLocalRecent().filter(r => r !== q))) }
+const clearLocalRecent  = () => localStorage.removeItem(RECENT_KEY)
 
-// ── Highlight matching text ────────────────────────────────
-const Highlight = ({ text, query, className = '' }) => {
-  if (!query || !text) return <span className={className}>{text}</span>
+const Highlight = ({ text, query, style = {} }) => {
+  if (!query || !text) return <span style={style}>{text}</span>
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex   = new RegExp(`(${escaped})`, 'gi')
   const parts   = text.split(regex)
   return (
-    <span className={className}>
+    <span style={style}>
       {parts.map((part, i) =>
         regex.test(part)
-          ? <mark key={i} className="bg-yellow-100 text-yellow-800 font-bold rounded-sm px-0.5 not-italic">{part}</mark>
+          ? <mark key={i} style={{ background: '#EAD8C2', color: '#B8895A', fontWeight: 500, padding: '0 1px', fontStyle: 'normal' }}>{part}</mark>
           : <span key={i}>{part}</span>
       )}
     </span>
   )
 }
 
-// ══════════════════════════════════════════════════════════
-// SearchBox Component
-// ══════════════════════════════════════════════════════════
+const SectionHead = ({ label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px 6px' }}>
+    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#AA9688', fontWeight: 400 }}>
+      {label}
+    </span>
+    <div style={{ flex: 1, height: '1px', background: '#EEE7DF' }} />
+  </div>
+)
+
+const DropRow = ({ active, onClick, onMouseEnter, children }) => (
+  <div
+    onClick={onClick}
+    onMouseEnter={onMouseEnter}
+    style={{
+      display: 'flex', alignItems: 'center', gap: '12px',
+      padding: '10px 16px', cursor: 'pointer',
+      background: active ? '#FFFCF9' : 'transparent',
+      borderLeft: active ? '2px solid #B8895A' : '2px solid transparent',
+      transition: 'all 0.15s ease',
+    }}
+    onMouseLeave={e => {
+      e.currentTarget.style.background = 'transparent'
+      e.currentTarget.style.borderLeftColor = 'transparent'
+    }}
+  >
+    {children}
+  </div>
+)
+
 export default function SearchBox({
-  variant      = 'navbar',   // 'navbar' | 'inline'
+  variant      = 'navbar',
   placeholder  = 'Search products, brands...',
   initialValue = '',
   onSearch,
   autoFocus    = false,
+  onClose,
 }) {
-  const navigate    = useNavigate()
-  const { user }    = useAuth()
+  const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [query,       setQuery]       = useState(initialValue)
   const [suggestions, setSuggestions] = useState(null)
@@ -69,14 +86,9 @@ export default function SearchBox({
   const dropdownRef = useRef(null)
   const timerRef    = useRef(null)
 
-  // ── Load recent history ──────────────────────────────
   const loadRecent = useCallback(async () => {
     if (user) {
-      try {
-        const res = await api.get('/users/search-history/')
-        setRecent(res.data.history || [])
-        return
-      } catch {}
+      try { const res = await api.get('/users/search-history/'); setRecent(res.data.history || []); return } catch {}
     }
     setRecent(getLocalRecent())
   }, [user])
@@ -85,164 +97,91 @@ export default function SearchBox({
   useEffect(() => { setQuery(initialValue) }, [initialValue])
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
-  // ── Save search to backend or localStorage ───────────
   const saveSearch = useCallback(async (q) => {
     if (!q?.trim() || q.trim().length < MIN_CHARS) return
     if (user) {
-      try {
-        await api.post('/users/search-history/', { query: q.trim() })
-        await loadRecent()
-        return
-      } catch {}
+      try { await api.post('/users/search-history/', { query: q.trim() }); await loadRecent(); return } catch {}
     }
-    saveLocalRecent(q)
-    setRecent(getLocalRecent())
+    saveLocalRecent(q); setRecent(getLocalRecent())
   }, [user, loadRecent])
 
-  // ── Remove one history item ──────────────────────────
   const removeSearch = useCallback(async (q) => {
     if (user) {
-      try {
-        await api.delete(`/users/search-history/?q=${encodeURIComponent(q)}`)
-        await loadRecent()
-        return
-      } catch {}
+      try { await api.delete(`/users/search-history/?q=${encodeURIComponent(q)}`); await loadRecent(); return } catch {}
     }
-    removeLocalRecent(q)
-    setRecent(getLocalRecent())
+    removeLocalRecent(q); setRecent(getLocalRecent())
   }, [user, loadRecent])
 
-  // ── Clear all history ────────────────────────────────
   const clearHistory = useCallback(async () => {
     if (user) {
-      try {
-        await api.delete('/users/search-history/')
-        setRecent([])
-        return
-      } catch {}
+      try { await api.delete('/users/search-history/'); setRecent([]); return } catch {}
     }
-    clearLocalRecent()
-    setRecent([])
+    clearLocalRecent(); setRecent([])
   }, [user])
 
-  // ── Debounced fetch — MIN_CHARS = 3 ─────────────────
   const fetchSuggestions = useCallback((q) => {
     clearTimeout(timerRef.current)
-    if (q.trim().length < MIN_CHARS) {
-      setSuggestions(null)
-      setLoading(false)
-      return
-    }
+    if (q.trim().length < MIN_CHARS) { setSuggestions(null); setLoading(false); return }
     setLoading(true)
     timerRef.current = setTimeout(async () => {
       try {
         const res = await api.get(`/products/search/suggestions/?q=${encodeURIComponent(q.trim())}`)
         setSuggestions(res.data)
-      } catch {
-        setSuggestions(null)
-      } finally {
-        setLoading(false)
-      }
+      } catch { setSuggestions(null) }
+      finally  { setLoading(false) }
     }, DEBOUNCE_MS)
   }, [])
 
   const handleChange = (e) => {
     const val = e.target.value
-    setQuery(val)
-    setActiveIdx(-1)
-    fetchSuggestions(val)
-    setOpen(true)
+    setQuery(val); setActiveIdx(-1); fetchSuggestions(val); setOpen(true)
   }
 
-  const handleFocus = () => {
-    loadRecent()
-    setOpen(true)
-  }
+  const handleFocus = () => { loadRecent(); setOpen(true) }
 
-  // ── Submit ───────────────────────────────────────────
   const submitSearch = useCallback((q) => {
     const trimmed = q?.trim()
     if (!trimmed) return
-    saveSearch(trimmed)
-    setOpen(false)
-    setActiveIdx(-1)
-    setQuery(trimmed)
-    if (onSearch) {
-      onSearch(trimmed)
-    } else {
-      navigate(`/products?search=${encodeURIComponent(trimmed)}`)
-    }
-  }, [navigate, onSearch, saveSearch])
+    saveSearch(trimmed); setOpen(false); setActiveIdx(-1); setQuery(trimmed)
+    if (onSearch) onSearch(trimmed)
+    else navigate(`/products?search=${encodeURIComponent(trimmed)}`)
+    onClose?.()
+  }, [navigate, onSearch, saveSearch, onClose])
 
-  // ── Item click ───────────────────────────────────────
   const handleItemClick = useCallback((item) => {
-    saveSearch(item.label)
-    setOpen(false)
-    setActiveIdx(-1)
-    setQuery(item.label)
+    saveSearch(item.label); setOpen(false); setActiveIdx(-1); setQuery(item.label)
+    if (item.type === 'product')       navigate(`/products/${item.slug}`)
+    else if (item.type === 'brand')    { if (onSearch) onSearch(item.label); else navigate(`/products?search=${encodeURIComponent(item.label)}`) }
+    else if (item.type === 'category') { if (onSearch) onSearch(item.label); else navigate(`/products?category=${item.id}`) }
+    else if (item.type === 'recent')   { if (onSearch) onSearch(item.label); else navigate(`/products?search=${encodeURIComponent(item.label)}`) }
+    onClose?.()
+  }, [navigate, onSearch, saveSearch, onClose])
 
-    if (item.type === 'product') {
-      navigate(`/products/${item.slug}`)
-    } else if (item.type === 'brand') {
-      if (onSearch) onSearch(item.label)
-      else navigate(`/products?search=${encodeURIComponent(item.label)}`)
-    } else if (item.type === 'category') {
-      // ✅ Navigate with category id
-      if (onSearch) onSearch(item.label)
-      else navigate(`/products?category=${item.id}`)
-    } else if (item.type === 'recent') {
-      if (onSearch) onSearch(item.label)
-      else navigate(`/products?search=${encodeURIComponent(item.label)}`)
-    }
-  }, [navigate, onSearch, saveSearch])
-
-  // ── Keyboard navigation ──────────────────────────────
   const handleKeyDown = (e) => {
     if (!open) return
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setActiveIdx(i => Math.min(i + 1, dropdownItems.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setActiveIdx(i => Math.max(i - 1, -1))
-    } else if (e.key === 'Enter') {
-      e.preventDefault()
-      if (activeIdx >= 0 && dropdownItems[activeIdx]) {
-        handleItemClick(dropdownItems[activeIdx])
-      } else {
-        submitSearch(query)
-      }
-    } else if (e.key === 'Escape') {
-      setOpen(false)
-      setActiveIdx(-1)
-      inputRef.current?.blur()
-    }
+    if (e.key === 'ArrowDown')      { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, dropdownItems.length - 1)) }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)) }
+    else if (e.key === 'Enter')     { e.preventDefault(); if (activeIdx >= 0 && dropdownItems[activeIdx]) handleItemClick(dropdownItems[activeIdx]); else submitSearch(query) }
+    else if (e.key === 'Escape')    { setOpen(false); setActiveIdx(-1); inputRef.current?.blur(); onClose?.() }
   }
 
-  // ── Outside click ────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
       if (!dropdownRef.current?.contains(e.target) && !inputRef.current?.contains(e.target)) {
-        setOpen(false)
-        setActiveIdx(-1)
+        setOpen(false); setActiveIdx(-1)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // ── Flat items for keyboard nav ──────────────────────
   const dropdownItems = useMemo(() => {
-    const items   = []
-    const trimmed = query.trim()
-    if (trimmed.length < MIN_CHARS) {
+    const items = []
+    if (query.trim().length < MIN_CHARS) {
       recent.forEach(r => items.push({ type: 'recent', label: r }))
     } else if (suggestions) {
-      suggestions.products.forEach(p => items.push({
-        type: 'product', label: p.name, slug: p.slug,
-        brand: p.brand, price: p.discounted_price, image: p.image,
-      }))
-      suggestions.brands.forEach(b => items.push({ type: 'brand', label: b }))
+      suggestions.products.forEach(p   => items.push({ type: 'product',  label: p.name,  slug: p.slug, brand: p.brand, price: p.discounted_price, image: p.image }))
+      suggestions.brands.forEach(b    => items.push({ type: 'brand',    label: b }))
       suggestions.categories.forEach(c => items.push({ type: 'category', label: c.name, id: c.id }))
     }
     return items
@@ -251,247 +190,238 @@ export default function SearchBox({
   const trimmedQuery = query.trim()
   const showRecent   = open && trimmedQuery.length < MIN_CHARS && recent.length > 0
   const showResults  = open && trimmedQuery.length >= MIN_CHARS
-  const hasResults   = suggestions && (
-    suggestions.products.length > 0 ||
-    suggestions.brands.length > 0 ||
-    suggestions.categories.length > 0
-  )
+  const hasResults   = suggestions && (suggestions.products.length > 0 || suggestions.brands.length > 0 || suggestions.categories.length > 0)
+  const isOverlay    = variant === 'overlay'
 
-  // ── Styles ───────────────────────────────────────────
-  const isNavbar = variant === 'navbar'
-
-  const inputCls = isNavbar
-    ? `w-full border-2 border-purple-200 rounded-xl px-4 py-2 pl-9 pr-9 text-sm
-       text-gray-700 bg-purple-50 placeholder-gray-400
-       focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400
-       focus:bg-white transition-all`
-    : `w-full border-2 border-purple-300 rounded-2xl px-4 py-3 pl-10 pr-9 text-sm
-       text-gray-700 bg-white placeholder-gray-400
-       focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400
-       transition-all`
-
-  // ── Render ───────────────────────────────────────────
   return (
-    <div className="relative w-full">
-      <form onSubmit={(e) => { e.preventDefault(); submitSearch(query) }}>
-        <div className="relative">
-          {/* Search icon */}
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400 pointer-events-none"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
-          </svg>
+    <div style={{ position: 'relative', width: '100%' }}>
+      <form onSubmit={e => { e.preventDefault(); submitSearch(query) }}>
+        <div style={{ position: 'relative' }}>
+
+          {!isOverlay && (
+            <Search size={14} strokeWidth={1.5}
+              style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#AA9688', pointerEvents: 'none' }}
+            />
+          )}
 
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={handleChange}
-            onFocus={handleFocus}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
             autoComplete="off"
             spellCheck="false"
-            className={inputCls}
+            style={{
+              width: '100%',
+              border: 'none',
+              borderRadius: 0,
+              padding: isOverlay ? '4px 0' : '10px 36px 10px 38px',
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: isOverlay ? '18px' : '13px',
+              color: '#16100C',
+              background: 'transparent',
+              outline: 'none',
+              fontWeight: 300,
+              letterSpacing: '0.01em',
+              transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            }}
+            onFocus={e => {
+              handleFocus()
+              if (!isOverlay) {
+                e.target.style.borderColor = '#B8895A'
+                e.target.style.boxShadow   = '0 0 0 3px rgba(184,137,90,0.10)'
+              }
+            }}
+            onBlur={e => {
+              if (!isOverlay) {
+                e.target.style.borderColor = '#E6DDD3'
+                e.target.style.boxShadow   = 'none'
+              }
+            }}
           />
 
-          {/* Right icon: spinner or clear */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            {loading ? (
-              <svg className="w-4 h-4 animate-spin text-purple-500" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
-            ) : query ? (
-              <button type="button"
-                onClick={() => {
-                  setQuery(''); setSuggestions(null); setOpen(false)
-                  inputRef.current?.focus()
-                  if (onSearch) onSearch('')
-                }}
-                className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors text-xs font-bold">
-                ✕
-              </button>
-            ) : null}
-          </div>
+          {!isOverlay && (
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }}>
+              {loading ? (
+                <Loader size={13} strokeWidth={1.5} style={{ color: '#B8895A', animation: 'luxurySpinner 0.9s linear infinite' }} />
+              ) : query ? (
+                <button type="button"
+                  onClick={() => { setQuery(''); setSuggestions(null); setOpen(false); inputRef.current?.focus(); if (onSearch) onSearch('') }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D4C4B0', display: 'flex', padding: 0, transition: 'color 0.2s ease' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#963838'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#D4C4B0'}
+                >
+                  <X size={13} strokeWidth={2} />
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
       </form>
 
-      {/* ── Dropdown ── */}
       {open && (showRecent || showResults) && (
-        <div ref={dropdownRef}
-          className="absolute top-full mt-2 left-0 right-0 z-[999] rounded-2xl shadow-2xl overflow-hidden border border-gray-200 bg-white">
+        <div ref={dropdownRef} style={{
+          position: 'absolute',
+          top: isOverlay ? 'calc(100% + 80px)' : 'calc(100% + 6px)',
+          left: isOverlay ? '-40px' : 0,
+          right: isOverlay ? '-40px' : 0,
+          zIndex: 999,
+          background: '#FFFFFF',
+          border: '1px solid #E6DDD3',
+          borderTop: '2px solid #B8895A',
+          boxShadow: '0 16px 48px rgba(22,16,12,0.12)',
+          maxHeight: '420px',
+          overflowY: 'auto',
+        }}>
 
-          {/* ── MIN_CHARS hint ── */}
           {open && trimmedQuery.length > 0 && trimmedQuery.length < MIN_CHARS && (
-            <div className="px-4 py-3 text-xs text-gray-400 text-center">
-              Type {MIN_CHARS - trimmedQuery.length} more character{MIN_CHARS - trimmedQuery.length > 1 ? 's' : ''} to search...
+            <div style={{ padding: '12px 16px', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#AA9688', textAlign: 'center', fontWeight: 300 }}>
+              Type {MIN_CHARS - trimmedQuery.length} more character{MIN_CHARS - trimmedQuery.length > 1 ? 's' : ''} to search
             </div>
           )}
 
-          {/* ── Recent Searches ── */}
           {showRecent && (
             <>
-              <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  {user ? '🕐 Recent Searches' : '🕐 Recent'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px 4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={11} strokeWidth={1.5} style={{ color: '#AA9688' }} />
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#AA9688', fontWeight: 400 }}>
+                    Recent Searches
+                  </span>
+                </div>
                 <button onClick={clearHistory}
-                  className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium">
+                  style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: '#D4C4B0', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 400, transition: 'color 0.2s ease', padding: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#963838'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#D4C4B0'}
+                >
                   Clear all
                 </button>
               </div>
               {recent.map((r, i) => (
-                <div key={r}
-                  className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
-                    ${activeIdx === i ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
-                  onMouseEnter={() => setActiveIdx(i)}
-                  onClick={() => handleItemClick({ type: 'recent', label: r })}>
-                  <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <span className="text-sm text-gray-700 flex-1">{r}</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); removeSearch(r) }}
-                    className="text-gray-300 hover:text-red-400 text-xs transition-colors px-1">✕</button>
-                </div>
+                <DropRow key={r} active={activeIdx === i} onMouseEnter={() => setActiveIdx(i)} onClick={() => handleItemClick({ type: 'recent', label: r })}>
+                  <Clock size={13} strokeWidth={1.5} style={{ color: '#D4C4B0', flexShrink: 0 }} />
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#3A2820', flex: 1, fontWeight: 300 }}>{r}</span>
+                  <button onClick={e => { e.stopPropagation(); removeSearch(r) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D4C4B0', display: 'flex', padding: '2px', transition: 'color 0.2s ease' }}
+                    onMouseEnter={e => { e.stopPropagation(); e.currentTarget.style.color = '#963838' }}
+                    onMouseLeave={e => e.currentTarget.style.color = '#D4C4B0'}
+                  >
+                    <X size={11} strokeWidth={2} />
+                  </button>
+                </DropRow>
               ))}
-              <div className="h-px bg-gray-100 mx-4 my-1" />
+              <div style={{ height: '1px', background: '#EEE7DF', margin: '4px 16px' }} />
             </>
           )}
 
-          {/* ── Live Results ── */}
           {showResults && (
             <>
-              {/* Loading skeleton */}
               {loading && !hasResults && (
-                <div className="px-4 py-3 space-y-3">
+                <div style={{ padding: '16px' }}>
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 animate-pulse">
-                      <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-3 bg-gray-100 rounded-full w-3/4" />
-                        <div className="h-2.5 bg-gray-100 rounded-full w-1/2" />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div className="skeleton" style={{ width: '44px', height: '44px', flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div className="skeleton" style={{ height: '12px', width: '70%' }} />
+                        <div className="skeleton" style={{ height: '10px', width: '40%' }} />
                       </div>
-                      <div className="h-3 bg-gray-100 rounded-full w-14 shrink-0" />
+                      <div className="skeleton" style={{ height: '12px', width: '50px', flexShrink: 0 }} />
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* No results */}
               {!loading && suggestions && !hasResults && (
-                <div className="px-4 py-8 text-center">
-                  <p className="text-3xl mb-2">🔍</p>
-                  <p className="text-sm font-semibold text-gray-600 mb-1">No results for "{trimmedQuery}"</p>
-                  <p className="text-xs text-gray-400">Try different keywords or check spelling</p>
+                <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <Search size={28} strokeWidth={1} style={{ color: '#E6DDD3', margin: '0 auto 12px' }} />
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontSize: '15px', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>
+                    No results for "{trimmedQuery}"
+                  </p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300, marginBottom: '14px' }}>
+                    Try different keywords or check spelling
+                  </p>
                   <button onClick={() => submitSearch(query)}
-                    className="mt-3 inline-block bg-purple-50 text-purple-600 text-xs font-semibold px-4 py-1.5 rounded-full hover:bg-purple-100 transition-colors">
-                    Search anyway →
+                    style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: '#B8895A', background: '#FFFCF9', border: '1px solid #E6DDD3', padding: '6px 16px', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400, transition: 'all 0.2s ease' }}>
+                    Search anyway
                   </button>
                 </div>
               )}
 
-              {/* ── Products ── */}
               {suggestions?.products?.length > 0 && (
                 <>
-                  <div className="px-4 pt-3 pb-1.5 flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Products</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
+                  <SectionHead label="Products" />
                   {suggestions.products.map((p, i) => (
-                    <div key={p.slug}
-                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
-                        ${activeIdx === i ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
-                      onMouseEnter={() => setActiveIdx(i)}
-                      onClick={() => handleItemClick({ type: 'product', label: p.name, slug: p.slug })}>
-                      <div className="w-10 h-10 bg-purple-50 rounded-xl overflow-hidden shrink-0 border border-purple-100">
-                        {p.image
-                          ? <img src={getProductImageUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-lg">🧴</div>}
+                    <DropRow key={p.slug} active={activeIdx === i} onMouseEnter={() => setActiveIdx(i)} onClick={() => handleItemClick({ type: 'product', label: p.name, slug: p.slug })}>
+                      <div style={{ width: '44px', height: '44px', background: '#F4EDE4', border: '1px solid #E6DDD3', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {p.image ? <img src={getProductImageUrl(p.image)} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} strokeWidth={1} style={{ color: '#D4C4B0' }} />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <Highlight text={p.name}  query={trimmedQuery} className="text-sm font-semibold text-gray-800 block truncate" />
-                        <Highlight text={p.brand} query={trimmedQuery} className="text-xs text-gray-400 block truncate" />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Highlight text={p.name} query={trimmedQuery} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#16100C', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 400 }} />
+                        <Highlight text={p.brand} query={trimmedQuery} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: '#AA9688', display: 'block', fontWeight: 300 }} />
                       </div>
-                      <span className="text-purple-600 text-sm font-bold shrink-0">Rs. {p.discounted_price}</span>
-                    </div>
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#B8895A', flexShrink: 0, fontWeight: 400 }}>Rs. {p.discounted_price}</span>
+                    </DropRow>
                   ))}
                 </>
               )}
 
-              {/* ── Brands ── */}
               {suggestions?.brands?.length > 0 && (
                 <>
-                  <div className="h-px bg-gray-100 mx-4 mt-1" />
-                  <div className="px-4 pt-3 pb-1.5 flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Brands</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
+                  <div style={{ height: '1px', background: '#EEE7DF', margin: '4px 0' }} />
+                  <SectionHead label="Brands" />
                   {suggestions.brands.map((b, i) => {
                     const idx = (suggestions?.products?.length || 0) + i
                     return (
-                      <div key={b}
-                        className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
-                          ${activeIdx === idx ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        onClick={() => handleItemClick({ type: 'brand', label: b })}>
-                        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center shrink-0 font-bold text-gray-500 text-sm">
-                          {b[0]?.toUpperCase()}
+                      <DropRow key={b} active={activeIdx === idx} onMouseEnter={() => setActiveIdx(idx)} onClick={() => handleItemClick({ type: 'brand', label: b })}>
+                        <div style={{ width: '44px', height: '44px', background: '#FDFAF7', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '15px', color: '#B8895A', fontWeight: 400 }}>{b[0]?.toUpperCase()}</span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <Highlight text={b} query={trimmedQuery} className="text-sm font-semibold text-gray-800 block" />
-                          <p className="text-xs text-gray-400">Browse all products</p>
+                        <div style={{ flex: 1 }}>
+                          <Highlight text={b} query={trimmedQuery} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#16100C', display: 'block', fontWeight: 400 }} />
+                          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: '#AA9688', fontWeight: 300 }}>Browse all products</span>
                         </div>
-                        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="m9 18 6-6-6-6"/>
-                        </svg>
-                      </div>
+                        <ChevronRight size={13} strokeWidth={1.5} style={{ color: '#D4C4B0', flexShrink: 0 }} />
+                      </DropRow>
                     )
                   })}
                 </>
               )}
 
-              {/* ── Categories ── */}
               {suggestions?.categories?.length > 0 && (
                 <>
-                  <div className="h-px bg-gray-100 mx-4 mt-1" />
-                  <div className="px-4 pt-3 pb-1.5 flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Categories</span>
-                    <div className="flex-1 h-px bg-gray-100" />
-                  </div>
+                  <div style={{ height: '1px', background: '#EEE7DF', margin: '4px 0' }} />
+                  <SectionHead label="Categories" />
                   {suggestions.categories.map((c, i) => {
                     const idx = (suggestions?.products?.length || 0) + (suggestions?.brands?.length || 0) + i
                     return (
-                      <div key={c.id}
-                        className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors
-                          ${activeIdx === idx ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        onClick={() => handleItemClick({ type: 'category', label: c.name, id: c.id })}>
-                        <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center shrink-0 text-lg">📂</div>
-                        <div className="flex-1 min-w-0">
-                          <Highlight text={c.name} query={trimmedQuery} className="text-sm font-semibold text-gray-800 block" />
-                          <p className="text-xs text-gray-400">Browse category</p>
+                      <DropRow key={c.id} active={activeIdx === idx} onMouseEnter={() => setActiveIdx(idx)} onClick={() => handleItemClick({ type: 'category', label: c.name, id: c.id })}>
+                        <div style={{ width: '44px', height: '44px', background: '#FDFAF7', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Layers size={16} strokeWidth={1.5} style={{ color: '#B8895A' }} />
                         </div>
-                        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path d="m9 18 6-6-6-6"/>
-                        </svg>
-                      </div>
+                        <div style={{ flex: 1 }}>
+                          <Highlight text={c.name} query={trimmedQuery} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#16100C', display: 'block', fontWeight: 400 }} />
+                          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11px', color: '#AA9688', fontWeight: 300 }}>Browse category</span>
+                        </div>
+                        <ChevronRight size={13} strokeWidth={1.5} style={{ color: '#D4C4B0', flexShrink: 0 }} />
+                      </DropRow>
                     )
                   })}
                 </>
               )}
 
-              {/* View all */}
               {hasResults && (
-                <div className="border-t border-gray-100 px-4 py-3">
+                <div style={{ borderTop: '1px solid #EEE7DF', padding: '12px 16px' }}>
                   <button onClick={() => submitSearch(query)}
-                    className="w-full flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700 text-xs font-bold transition-colors py-0.5">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '11.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400, transition: 'color 0.2s ease', padding: '4px 0' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#A5773E'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#B8895A'}
+                  >
+                    <Search size={12} strokeWidth={1.5} />
                     View all results for "{trimmedQuery}"
+                    <ArrowRight size={12} strokeWidth={1.5} />
                   </button>
                 </div>
               )}

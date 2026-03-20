@@ -1,132 +1,173 @@
-// src/components/Skeleton.jsx
+// src/components/Skeleton.jsx — SkinMedica Luxury Redesign
 import React from 'react'
 
-const shimmer = "animate-pulse bg-gray-200 rounded"
-
-export const SkeletonBox = ({ className = '' }) => (
-  <div className={`${shimmer} ${className}`} />
+// ── Base skeleton ─────────────────────────────────────────
+export const SkeletonBox = ({ style = {} }) => (
+  <div className="skeleton" style={{ borderRadius: 0, ...style }} />
 )
 
-export const SkeletonText = ({ className = '' }) => ( 
-  <div className={`${shimmer} h-4 ${className}`} />
+export const SkeletonText = ({ style = {} }) => (
+  <div className="skeleton" style={{ height: '12px', borderRadius: 0, ...style }} />
 )
 
 export const SkeletonCircle = ({ size = 40 }) => (
-  <div className={`${shimmer} rounded-full shrink-0`} style={{ width: size, height: size }} />
+  <div className="skeleton" style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0 }} />
 )
 
-// ── Product Card Skeleton ──────────────────────────────────
+// ── Product Card Skeleton ─────────────────────────────────
 export const ProductCardSkeleton = () => (
-  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
-    <div className="animate-pulse bg-gray-200 h-44 w-full" />
-    <div className="p-3 space-y-2">
-      <SkeletonText className="w-1/3" />
-      <SkeletonText className="w-full" />
-      <SkeletonText className="w-2/3" />
-      <SkeletonText className="w-1/4 h-6 rounded-full" />
-      <SkeletonText className="w-1/3 h-5 mt-1" />
-      <SkeletonBox className="h-9 w-full mt-2 rounded-lg" />
-      <SkeletonBox className="h-9 w-full rounded-lg" />
+  <div style={{ background: '#FFFFFF', overflow: 'hidden' }}>
+    {/* Image */}
+    <div className="skeleton" style={{ aspectRatio: '3/4', width: '100%', borderRadius: 0 }} />
+    {/* Body */}
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <SkeletonText style={{ width: '35%' }} />
+      <SkeletonText style={{ width: '85%', height: '15px' }} />
+      <SkeletonText style={{ width: '55%' }} />
+      <SkeletonText style={{ width: '30%', height: '14px', marginTop: '4px' }} />
     </div>
   </div>
 )
 
-// ── Order Card Skeleton ────────────────────────────────────
+// ── Order Card Skeleton ───────────────────────────────────
 export const OrderCardSkeleton = () => (
-  <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
-    <div className="flex justify-between items-start">
-      <div className="space-y-2">
-        <SkeletonText className="w-36" />
-        <SkeletonText className="w-24" />
-      </div>
-      <SkeletonBox className="h-7 w-20 rounded-full" />
-    </div>
-    <div className="border-t pt-3 space-y-3">
-      {[1, 2].map(i => (
-        <div key={i} className="flex gap-3 items-center">
-          <SkeletonBox className="w-12 h-12 rounded-lg shrink-0" />
-          <div className="flex-1 space-y-1.5">
-            <SkeletonText className="w-3/4" />
-            <SkeletonText className="w-1/4" />
-          </div>
-          <SkeletonText className="w-16" />
+  <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', padding: '20px 24px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+        <SkeletonBox style={{ width: '44px', height: '44px', flexShrink: 0 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <SkeletonText style={{ width: '140px' }} />
+          <SkeletonText style={{ width: '100px' }} />
         </div>
-      ))}
+      </div>
+      <SkeletonBox style={{ width: '70px', height: '24px' }} />
     </div>
-    <div className="flex justify-between items-center border-t pt-3">
-      <SkeletonText className="w-20" />
-      <SkeletonText className="w-24 h-5" />
+    <SkeletonBox style={{ height: '3px', width: '100%', marginBottom: '12px' }} />
+    <div style={{ display: 'flex', gap: '8px' }}>
+      {[...Array(3)].map((_, i) => (
+        <SkeletonBox key={i} style={{ width: '36px', height: '36px', flexShrink: 0 }} />
+      ))}
     </div>
   </div>
 )
 
-// ── Profile Skeleton ───────────────────────────────────────
+// ── Profile Skeleton ──────────────────────────────────────
 export const ProfileSkeleton = () => (
-  <div className="min-h-screen bg-gray-50">
-    <div className="animate-pulse bg-gray-300 h-32 w-full" />
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-      <div className="grid grid-cols-3 gap-3">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-2xl shadow-sm p-5 text-center space-y-2">
-            <SkeletonCircle size={40} />
-            <SkeletonText className="w-1/2 mx-auto h-6" />
-            <SkeletonText className="w-2/3 mx-auto" />
+  <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
+    {/* Header */}
+    <div className="skeleton" style={{ height: '160px', borderRadius: 0 }} />
+
+    <div className="container-luxury" style={{ padding: '40px 32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px' }}>
+        {/* Main column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Edit profile card */}
+          <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', padding: '24px' }}>
+            <SkeletonText style={{ width: '140px', height: '18px', marginBottom: '24px' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div>
+                <SkeletonText style={{ width: '70px', marginBottom: '8px' }} />
+                <SkeletonBox style={{ height: '42px' }} />
+              </div>
+              <div>
+                <SkeletonText style={{ width: '70px', marginBottom: '8px' }} />
+                <SkeletonBox style={{ height: '42px' }} />
+              </div>
+            </div>
+            {[1, 2].map(i => (
+              <div key={i} style={{ marginBottom: '14px' }}>
+                <SkeletonText style={{ width: '60px', marginBottom: '8px' }} />
+                <SkeletonBox style={{ height: '42px' }} />
+              </div>
+            ))}
+            <SkeletonBox style={{ height: '42px', width: '140px', marginTop: '8px' }} />
           </div>
-        ))}
-      </div>
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-        <SkeletonText className="w-1/4 h-5" />
-        {[1, 2, 3].map(i => (
-          <div key={i} className="space-y-1.5">
-            <SkeletonText className="w-1/5" />
-            <SkeletonBox className="h-11 w-full rounded-lg" />
+
+          {/* Password card */}
+          <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', padding: '24px' }}>
+            <SkeletonText style={{ width: '160px', height: '18px', marginBottom: '24px' }} />
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ marginBottom: '14px' }}>
+                <SkeletonText style={{ width: '100px', marginBottom: '8px' }} />
+                <SkeletonBox style={{ height: '42px' }} />
+              </div>
+            ))}
           </div>
-        ))}
-        <SkeletonBox className="h-11 w-36 rounded-xl" />
+        </div>
+
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Stats card */}
+          <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
+            <div style={{ height: '2px' }} className="skeleton" />
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF' }}>
+              <SkeletonText style={{ width: '120px', height: '15px' }} />
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '13px 24px', borderBottom: '1px solid #EEE7DF' }}>
+                <SkeletonText style={{ width: '90px' }} />
+                <SkeletonText style={{ width: '50px' }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Account info card */}
+          <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF' }}>
+              <SkeletonText style={{ width: '110px', height: '15px' }} />
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 24px', borderBottom: '1px solid #EEE7DF' }}>
+                <SkeletonText style={{ width: '80px' }} />
+                <SkeletonText style={{ width: '70px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   </div>
 )
 
-// ── Admin Dashboard Skeleton ───────────────────────────────
+// ── Admin Stats Skeleton ──────────────────────────────────
 export const AdminStatsSkeleton = () => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
       {[1, 2, 3, 4].map(i => (
-        <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-3">
-          <div className="flex justify-between items-start">
-            <div className="animate-pulse bg-gray-700 h-4 w-24 rounded" />
-            <div className="animate-pulse bg-gray-700 rounded-full w-9 h-9" />
+        <div key={i} style={{ background: '#181818', border: '1px solid #252525', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="skeleton" style={{ height: '12px', width: '80px', background: '#2A2A2A' }} />
+            <div className="skeleton" style={{ width: '36px', height: '36px', borderRadius: 0, background: '#2A2A2A' }} />
           </div>
-          <div className="animate-pulse bg-gray-700 h-8 w-20 rounded" />
-          <div className="animate-pulse bg-gray-700 h-3 w-32 rounded" />
+          <div className="skeleton" style={{ height: '28px', width: '70px', background: '#2A2A2A' }} />
+          <div className="skeleton" style={{ height: '10px', width: '100px', background: '#2A2A2A' }} />
         </div>
       ))}
     </div>
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-      <div className="animate-pulse bg-gray-700 h-5 w-36 rounded" />
+    <div style={{ background: '#181818', border: '1px solid #252525', padding: '20px' }}>
+      <div className="skeleton" style={{ height: '14px', width: '120px', background: '#2A2A2A', marginBottom: '20px' }} />
       {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className="flex gap-4 items-center py-2 border-b border-gray-800">
-          <div className="animate-pulse bg-gray-700 h-4 w-24 rounded" />
-          <div className="animate-pulse bg-gray-700 h-4 w-32 rounded flex-1" />
-          <div className="animate-pulse bg-gray-700 h-6 w-16 rounded-full" />
-          <div className="animate-pulse bg-gray-700 h-4 w-20 rounded" />
+        <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #1E1E1E' }}>
+          <div className="skeleton" style={{ height: '12px', width: '80px', background: '#2A2A2A' }} />
+          <div className="skeleton" style={{ height: '12px', flex: 1, background: '#2A2A2A' }} />
+          <div className="skeleton" style={{ height: '22px', width: '60px', background: '#2A2A2A' }} />
+          <div className="skeleton" style={{ height: '12px', width: '70px', background: '#2A2A2A' }} />
         </div>
       ))}
     </div>
   </div>
 )
 
-// ── Home Featured Skeleton ─────────────────────────────────
+// ── Home Featured Skeleton ────────────────────────────────
 export const HomeSkeleton = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#E6DDD3' }}>
     {[1, 2, 3, 4].map(i => (
-      <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-        <div className="animate-pulse bg-gray-200 h-36 sm:h-40 w-full" />
-        <div className="p-3 space-y-2">
-          <SkeletonText className="w-1/3" />
-          <SkeletonText className="w-full" />
-          <SkeletonText className="w-1/2" />
+      <div key={i} style={{ background: '#FFFFFF', overflow: 'hidden' }}>
+        <div className="skeleton" style={{ aspectRatio: '3/4', width: '100%', borderRadius: 0 }} />
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <SkeletonText style={{ width: '30%' }} />
+          <SkeletonText style={{ width: '80%', height: '15px' }} />
+          <SkeletonText style={{ width: '40%' }} />
         </div>
       </div>
     ))}

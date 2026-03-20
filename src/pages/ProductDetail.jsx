@@ -1,71 +1,116 @@
-// src/pages/ProductDetail.jsx — 100% Professional + Tailwind v4
+// src/pages/ProductDetail.jsx — Mobile Responsive + SEO
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../api/axios'
-import { useAuth } from '../context/AuthContext'
-import { useCart } from '../context/CartContext'
+import { useAuth }     from '../context/AuthContext'
+import { useCart }     from '../context/CartContext'
 import { useWishlist } from '../context/WishlistContext'
+import SEO from '../components/SEO'
 import toast from 'react-hot-toast'
 import { getProductImageUrl } from '../utils/productImage'
+import {
+  Star, Heart, ShoppingBag, Zap, Truck, RefreshCw,
+  ShieldCheck, Minus, Plus, ChevronRight, Package,
+  User, CheckCircle, Send,
+} from 'lucide-react'
 
-// ── Star Rating ────────────────────────────────────────────
-const StarRating = ({ rating = 0, max = 5, size = 'md', interactive = false, onChange }) => {
-  const [hovered, setHovered] = useState(0)
-  const sizeClass = { sm: 'text-sm', md: 'text-xl', lg: 'text-2xl' }[size]
-
-  if (!interactive) {
-    return (
-      <div className={`flex gap-0.5 ${sizeClass}`}>
-        {[...Array(max)].map((_, i) => (
-          <span key={i} className={rating >= i + 1 || rating >= i + 0.5 ? 'text-amber-400' : 'text-gray-200'}>★</span>
-        ))}
-      </div>
-    )
+const DETAIL_CSS = `
+  .detail-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+    margin-bottom: 72px;
   }
+  .detail-assurance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .detail-related-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #E6DDD3;
+  }
+  .detail-tabs-content { padding: 40px; }
+  .detail-rating-overview {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 40px;
+  }
+  .detail-gallery-thumbs { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .detail-cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .detail-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  @media (max-width: 1024px) {
+    .detail-main-grid { gap: 40px; }
+    .detail-related-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .detail-main-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+      margin-bottom: 48px;
+    }
+    .detail-assurance-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .detail-related-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-tabs-content { padding: 24px 16px; }
+    .detail-rating-overview { grid-template-columns: 1fr; gap: 20px; }
+    .detail-cta-row { gap: 8px; }
+  }
+  @media (max-width: 480px) {
+    .detail-related-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-assurance-grid { grid-template-columns: 1fr; gap: 8px; }
+  }
+`
 
+const StarRating = ({ rating = 0, max = 5, size = 14, interactive = false, onChange }) => {
+  const [hovered, setHovered] = useState(0)
+  if (!interactive) return (
+    <div style={{ display: 'flex', gap: '2px' }}>
+      {[...Array(max)].map((_, i) => (
+        <Star key={i} size={size} strokeWidth={1}
+          style={{ fill: rating >= i+1 ? '#B8895A' : 'none', color: rating >= i+1 ? '#B8895A' : '#E6DDD3' }}
+        />
+      ))}
+    </div>
+  )
   return (
-    <div className={`flex gap-1 ${sizeClass}`}>
+    <div style={{ display: 'flex', gap: '4px' }}>
       {[...Array(max)].map((_, i) => {
-        const val    = i + 1
-        const filled = (hovered || rating) >= val
+        const val = i + 1; const filled = (hovered || rating) >= val
         return (
-          <span key={i}
-            className={`cursor-pointer transition-transform hover:scale-125 select-none ${filled ? 'text-amber-400' : 'text-gray-300'}`}
-            onMouseEnter={() => setHovered(val)}
-            onMouseLeave={() => setHovered(0)}
-            onClick={() => onChange?.(val)}>
-            ★
-          </span>
+          <Star key={i} size={22} strokeWidth={1}
+            style={{ fill: filled ? '#B8895A' : 'none', color: filled ? '#B8895A' : '#E6DDD3', cursor: 'pointer', transition: 'all 0.15s' }}
+            onMouseEnter={() => setHovered(val)} onMouseLeave={() => setHovered(0)} onClick={() => onChange?.(val)}
+          />
         )
       })}
     </div>
   )
 }
 
-// ── Image Gallery ──────────────────────────────────────────
 const ImageGallery = ({ images = [], name }) => {
   const [active, setActive] = useState(0)
   const all = images.filter(Boolean)
-
   if (all.length === 0) return (
-    <div className="bg-purple-50 rounded-3xl h-80 sm:h-105 flex items-center justify-center">
-      <span className="text-8xl">🧴</span>
+    <div style={{ background: '#F4EDE4', height: 'clamp(280px,40vw,480px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Package size={64} strokeWidth={0.8} style={{ color: '#D4C4B0' }} />
     </div>
   )
-
   return (
-    <div className="space-y-3">
-      <div className="bg-linear-to-br from-purple-50 to-pink-50 rounded-3xl overflow-hidden h-80 sm:h-105 flex items-center justify-center relative group">
+    <div>
+      <div style={{ background: '#F4EDE4', height: 'clamp(280px,40vw,480px)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
         <img src={getProductImageUrl(all[active])} alt={name}
-          className="w-full h-full object-contain p-6 transition-transform duration-500 group-hover:scale-105" />
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '24px', transition: 'transform 0.65s ease' }}
+        />
       </div>
       {all.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <div className="detail-gallery-thumbs">
           {all.map((img, i) => (
             <button key={i} onClick={() => setActive(i)}
-              className={`shrink-0 w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all ${
-                active === i ? 'border-purple-500 shadow-md shadow-purple-200' : 'border-gray-200 hover:border-purple-300 opacity-70 hover:opacity-100'}`}>
-              <img src={getProductImageUrl(img)} alt={`${name} ${i+1}`} className="w-full h-full object-cover" />
+              style={{ width: '64px', height: '64px', border: `1.5px solid ${active === i ? '#B8895A' : '#E6DDD3'}`, background: '#F4EDE4', overflow: 'hidden', cursor: 'pointer', padding: 0, transition: 'border-color 0.2s', flexShrink: 0 }}>
+              <img src={getProductImageUrl(img)} alt={`${name} ${i+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </button>
           ))}
         </div>
@@ -74,62 +119,64 @@ const ImageGallery = ({ images = [], name }) => {
   )
 }
 
-// ── Review Form ────────────────────────────────────────────
 const ReviewForm = ({ productSlug, onSubmit }) => {
   const [rating,  setRating]  = useState(0)
   const [comment, setComment] = useState('')
   const [loading, setLoading] = useState(false)
-  const ratingLabels = { 1:'Poor', 2:'Fair', 3:'Good', 4:'Very Good', 5:'Excellent' }
-  const ratingColors = { 1:'text-red-500', 2:'text-orange-500', 3:'text-amber-500', 4:'text-lime-600', 5:'text-green-600' }
+  const labels = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Very Good', 5: 'Excellent' }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!rating) { toast.error('Please select a rating!'); return }
+    if (!rating) { toast.error('Please select a rating'); return }
     setLoading(true)
     try {
       await api.post(`/products/${productSlug}/reviews/`, { rating, comment })
-      toast.success('Review submitted! ⭐')
-      setRating(0); setComment('')
-      onSubmit?.()
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit review.')
-    } finally { setLoading(false) }
+      toast.success('Review submitted'); setRating(0); setComment(''); onSubmit?.()
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to submit.') }
+    finally { setLoading(false) }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-linear-to-br from-purple-50 to-pink-50 rounded-3xl p-6 space-y-5 border border-purple-100">
-      <h3 className="font-black text-gray-900 text-lg">Write a Review</h3>
-
-      <div>
-        <p className="text-sm font-semibold text-gray-700 mb-2">Your Rating <span className="text-red-400">*</span></p>
-        <div className="flex items-center gap-3">
-          <StarRating rating={rating} size="lg" interactive onChange={setRating} />
-          {rating > 0 && (
-            <span className={`text-sm font-bold ${ratingColors[rating]}`}>{ratingLabels[rating]}</span>
-          )}
+    <form onSubmit={handleSubmit}>
+      <div style={{ background: '#F4EDE4', border: '1px solid #E6DDD3', padding: 'clamp(20px,3vw,32px)' }}>
+        <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400, marginBottom: '24px' }}>Write a Review</h3>
+        <div style={{ marginBottom: '20px' }}>
+          <label className="input-label">Your Rating <span style={{ color: '#963838' }}>*</span></label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+            <StarRating rating={rating} size={22} interactive onChange={setRating} />
+            {rating > 0 && <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{labels[rating]}</span>}
+          </div>
         </div>
+        <div style={{ marginBottom: '20px' }}>
+          <label className="input-label">Comment <span style={{ color: '#AA9688', textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+          <textarea value={comment} onChange={e => setComment(e.target.value)} rows={4}
+            placeholder="Share your honest experience..." className="input-luxury" style={{ resize: 'none', marginTop: '8px' }} />
+        </div>
+        <button type="submit" disabled={loading || !rating} className="btn-primary" style={{ gap: '8px' }}>
+          <Send size={14} strokeWidth={1.5} />
+          {loading ? 'Submitting...' : 'Submit Review'}
+        </button>
       </div>
-
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-          Comment <span className="text-gray-400 font-normal">(optional)</span>
-        </label>
-        <textarea value={comment} onChange={e => setComment(e.target.value)}
-          rows={3} placeholder="Share your honest experience with this product..."
-          className="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:border-purple-400 focus:bg-white bg-white/80 resize-none transition-colors" />
-      </div>
-
-      <button type="submit" disabled={loading || !rating}
-        className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold px-6 py-3 rounded-2xl text-sm transition-colors flex items-center gap-2">
-        {loading
-          ? <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Submitting...</>
-          : '⭐ Submit Review'}
-      </button>
     </form>
   )
 }
 
-// ── Main ───────────────────────────────────────────────────
+const DetailSkeleton = () => (
+  <div className="container-luxury" style={{ padding: 'clamp(24px,4vw,48px) 32px' }}>
+    <div className="detail-main-grid">
+      <div className="skeleton" style={{ height: 'clamp(280px,40vw,480px)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="skeleton" style={{ height: '14px', width: '40%' }} />
+        <div className="skeleton" style={{ height: '32px', width: '80%' }} />
+        <div className="skeleton" style={{ height: '14px', width: '30%' }} />
+        <div className="skeleton" style={{ height: '40px', width: '50%' }} />
+        <div className="skeleton" style={{ height: '48px' }} />
+        <div className="skeleton" style={{ height: '48px' }} />
+      </div>
+    </div>
+  </div>
+)
+
 export default function ProductDetail() {
   const { slug }           = useParams()
   const navigate           = useNavigate()
@@ -156,8 +203,7 @@ export default function ProductDetail() {
     api.get(`/products/${slug}/`)
       .then(res => {
         const p = res.data.product || res.data
-        setProduct(p)
-        fetchReviews()
+        setProduct(p); fetchReviews()
         if (p.category) {
           api.get(`/products/?category=${p.category}&page_size=5`)
             .then(r => setRelated((r.data.results || []).filter(x => x.slug !== slug).slice(0, 4)))
@@ -174,10 +220,9 @@ export default function ProductDetail() {
     try {
       await api.post('/orders/cart/add/', { product_id: product.id, quantity })
       await fetchCartCount()
-      toast.success(`${quantity} item(s) added to cart!`)
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to add to cart.')
-    } finally { setAdding(false) }
+      toast.success(`${quantity} item(s) added to cart`)
+    } catch (err) { toast.error(err.response?.data?.error || 'Failed to add.') }
+    finally { setAdding(false) }
   }
 
   const buyNow = () => {
@@ -185,397 +230,304 @@ export default function ProductDetail() {
     navigate('/checkout', { state: { buyNow: { product_id: product.id, product, quantity } } })
   }
 
-  // ── Loading skeleton ──
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-pulse">
-          <div className="bg-gray-100 rounded-3xl h-96" />
-          <div className="space-y-4">
-            <div className="bg-gray-100 h-4 w-1/4 rounded-full" />
-            <div className="bg-gray-100 h-8 w-3/4 rounded-xl" />
-            <div className="bg-gray-100 h-4 w-1/3 rounded-full" />
-            <div className="bg-gray-100 h-10 w-1/3 rounded-xl" />
-            <div className="bg-gray-100 h-14 w-full rounded-2xl" />
-            <div className="bg-gray-100 h-14 w-full rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-
+  if (loading) return <div style={{ background: '#FAF8F5', minHeight: '100vh' }}><DetailSkeleton /></div>
   if (!product) return null
 
-  const images  = [product.image, product.image_2, product.image2, product.image_3, product.image3].filter(Boolean)
-  const inStock = product.stock_status === 'In Stock' || (product.stock > 0)
+  const images     = [product.image, product.image_2, product.image2, product.image_3, product.image3].filter(Boolean)
+  const inStock    = product.stock_status === 'In Stock' || product.stock > 0
   const wishlisted = isWishlisted?.(product.id)
-
-  const avgRating  = product.avg_rating  ?? (reviews.length ? parseFloat((reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(1)) : 0)
+  const avgRating  = product.avg_rating ?? (reviews.length ? parseFloat((reviews.reduce((s,r) => s+r.rating,0)/reviews.length).toFixed(1)) : 0)
   const totalCount = product.review_count ?? reviews.length
-  const ratingDist = product.rating_distribution ?? [5,4,3,2,1].map(star => ({
-    star,
-    count:   reviews.filter(r => r.rating === star).length,
-    percent: reviews.length ? Math.round(reviews.filter(r => r.rating === star).length / reviews.length * 100) : 0,
+  const ratingDist = [5,4,3,2,1].map(star => ({
+    star, count: reviews.filter(r => r.rating === star).length,
+    percent: reviews.length ? Math.round(reviews.filter(r=>r.rating===star).length/reviews.length*100) : 0,
   }))
+  const meta = [
+    { label: 'Brand',        value: product.brand },
+    { label: 'Category',     value: product.category?.name || product.category_name },
+    { label: 'Skin Type',    value: product.suitable_skin_type },
+    { label: 'Skin Concern', value: product.skin_concern },
+    { label: 'Gender',       value: product.gender },
+  ].filter(i => i.value)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <SEO title={product.name} description={product.description?.slice(0,160) || `Buy ${product.name} by ${product.brand}`} url={`/products/${slug}`} />
+      <style>{DETAIL_CSS}</style>
 
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 text-sm flex-wrap">
-          <Link to="/"         className="text-gray-400 hover:text-purple-600 transition-colors">Home</Link>
-          <span className="text-gray-300">›</span>
-          <Link to="/products" className="text-gray-400 hover:text-purple-600 transition-colors">Products</Link>
-          <span className="text-gray-300">›</span>
-          <span className="text-gray-700 font-medium line-clamp-1">{product.name}</span>
+      <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
+
+        {/* Breadcrumb */}
+        <div style={{ background: '#F4EDE4', borderBottom: '1px solid #E6DDD3', padding: '14px 0' }}>
+          <div className="container-luxury">
+            <div className="breadcrumb">
+              <Link to="/">Home</Link>
+              <span className="sep"><ChevronRight size={11} strokeWidth={1.5} /></span>
+              <Link to="/products">Products</Link>
+              <span className="sep"><ChevronRight size={11} strokeWidth={1.5} /></span>
+              <span className="current" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="container-luxury" style={{ padding: 'clamp(24px,4vw,48px) 32px' }}>
 
-        {/* ── Product Main ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
+          {/* Main grid */}
+          <div className="detail-main-grid">
+            <ImageGallery images={images} name={product.name} />
 
-          {/* Left — Images */}
-          <ImageGallery images={images} name={product.name} />
-
-          {/* Right — Info */}
-          <div className="space-y-5">
-
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2">
-              {product.is_featured && (
-                <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full border border-amber-200">⭐ Featured</span>
-              )}
-              {product.discount_percent > 0 && (
-                <span className="bg-red-100 text-red-600 text-xs font-bold px-3 py-1 rounded-full border border-red-200">🔥 {product.discount_percent}% OFF</span>
-              )}
-              <span className="bg-purple-100 text-purple-600 text-xs font-bold px-3 py-1 rounded-full border border-purple-200 capitalize">
-                {product.suitable_skin_type} skin
-              </span>
-            </div>
-
-            {/* Brand + Name */}
             <div>
-              <p className="text-purple-600 font-bold text-sm mb-1 uppercase tracking-wide">{product.brand}</p>
-              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">{product.name}</h1>
-              <p className="text-gray-400 text-sm mt-1">{product.category?.name || product.category_name}</p>
-            </div>
+              <div className="detail-badge-row">
+                {product.is_featured && <span className="badge badge-accent">Featured</span>}
+                {product.discount_percent > 0 && <span className="badge badge-error">{product.discount_percent}% Off</span>}
+                {product.suitable_skin_type && <span className="badge badge-light" style={{ textTransform: 'capitalize' }}>{product.suitable_skin_type} Skin</span>}
+              </div>
 
-            {/* Ratings */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {totalCount > 0 ? (
-                <>
-                  <StarRating rating={avgRating} size="md" />
-                  <span className="font-black text-gray-900 text-xl">{avgRating}</span>
-                  <span className="text-gray-400 text-sm">
-                    ({totalCount} {totalCount === 1 ? 'review' : 'reviews'})
-                  </span>
-                  <button onClick={() => setActiveTab('reviews')}
-                    className="text-purple-600 text-sm font-semibold hover:underline transition-colors">
-                    Read reviews →
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <StarRating rating={0} size="md" />
-                  <span className="text-gray-400 text-sm">No reviews yet</span>
-                  {user && (
-                    <button onClick={() => setActiveTab('reviews')}
-                      className="text-purple-600 text-sm font-semibold hover:underline">
-                      Be the first →
+              <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#B8895A', marginBottom: '8px', fontWeight: 400 }}>{product.brand}</p>
+              <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,2.5vw,34px)', color: '#16100C', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.15, marginBottom: '6px' }}>{product.name}</h1>
+              <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 300 }}>{product.category?.name || product.category_name}</p>
+
+              <div style={{ height: '1px', background: '#E6DDD3', margin: '20px 0' }} />
+
+              {/* Ratings */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {totalCount > 0 ? (
+                  <>
+                    <StarRating rating={avgRating} size={14} />
+                    <span style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400 }}>{avgRating}</span>
+                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>({totalCount} reviews)</span>
+                    <button onClick={() => setActiveTab('reviews')} className="btn-ghost" style={{ fontSize: '11.5px', gap: '4px', padding: '4px 0', color: '#B8895A' }}>
+                      Read reviews <ChevronRight size={12} strokeWidth={1.5} />
                     </button>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <StarRating rating={0} size={14} />
+                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>No reviews yet</span>
+                    {user && <button onClick={() => setActiveTab('reviews')} className="btn-ghost" style={{ fontSize: '11.5px', padding: '4px 0', color: '#B8895A' }}>Be the first</button>}
+                  </div>
+                )}
+              </div>
+
+              {/* Price */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(26px,3vw,36px)', color: '#16100C', fontWeight: 400 }}>Rs. {product.discounted_price}</span>
+                {product.discount_percent > 0 && (
+                  <>
+                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '16px', color: '#AA9688', textDecoration: 'line-through', fontWeight: 300 }}>Rs. {product.price}</span>
+                    <span className="badge badge-error">Save Rs. {(parseFloat(product.price)-parseFloat(product.discounted_price)).toFixed(0)}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Stock */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+                <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: inStock ? '#4A7A57' : '#963838', boxShadow: inStock ? '0 0 0 3px rgba(74,122,87,0.18)' : 'none' }} />
+                <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: inStock ? '#4A7A57' : '#963838', fontWeight: 400 }}>
+                  {product.stock_status || (inStock ? `In Stock${product.stock ? ` — ${product.stock} left` : ''}` : 'Out of Stock')}
+                </span>
+                {product.stock && product.stock <= 10 && inStock && <span className="badge badge-warning">Only {product.stock} left</span>}
+              </div>
+
+              {/* Qty */}
+              {inStock && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: '#7B6458', fontWeight: 400 }}>Qty</span>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E6DDD3' }}>
+                    <button className="qty-btn" onClick={() => setQuantity(q => Math.max(1, q-1))}><Minus size={14} strokeWidth={1.5} /></button>
+                    <span className="qty-display">{quantity}</span>
+                    <button className="qty-btn" onClick={() => setQuantity(q => Math.min(product.stock||99, q+1))}><Plus size={14} strokeWidth={1.5} /></button>
+                  </div>
+                </div>
+              )}
+
+              {/* CTAs */}
+              <div className="detail-cta-row">
+                <button onClick={addToCart} disabled={adding || !inStock} className="btn-primary" style={{ flex: 1, gap: '8px', minWidth: '130px' }}>
+                  <ShoppingBag size={15} strokeWidth={1.5} />
+                  {adding ? 'Adding...' : 'Add to Cart'}
+                </button>
+                <button onClick={buyNow} disabled={!inStock} className="btn-accent" style={{ flex: 1, gap: '8px', minWidth: '110px' }}>
+                  <Zap size={15} strokeWidth={1.5} />
+                  {inStock ? 'Buy Now' : 'Out of Stock'}
+                </button>
+                <button onClick={() => toggleWishlist?.(product.id)}
+                  style={{ width: '48px', height: '48px', border: `1px solid ${wishlisted ? '#B8895A' : '#E6DDD3'}`, background: wishlisted ? '#FAF4EE' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = '#B8895A'}
+                  onMouseLeave={e => { if (!wishlisted) e.currentTarget.style.borderColor = '#E6DDD3' }}
+                >
+                  <Heart size={17} strokeWidth={1.5} style={{ fill: wishlisted ? '#B8895A' : 'none', color: wishlisted ? '#B8895A' : '#7B6458' }} />
+                </button>
+              </div>
+
+              {/* Assurance */}
+              <div className="detail-assurance-grid">
+                {[
+                  { icon: <Truck size={14} strokeWidth={1.5} />, label: 'Free above Rs. 2000' },
+                  { icon: <RefreshCw size={14} strokeWidth={1.5} />, label: 'Easy returns' },
+                  { icon: <ShieldCheck size={14} strokeWidth={1.5} />, label: 'Genuine product' },
+                ].map(({ icon, label }) => (
+                  <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '10px 6px', background: '#F4EDE4', border: '1px solid #E6DDD3', textAlign: 'center' }}>
+                    <span style={{ color: '#B8895A' }}>{icon}</span>
+                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#7B6458', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 400, lineHeight: 1.3 }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Meta */}
+              {meta.length > 0 && (
+                <div style={{ border: '1px solid #E6DDD3' }}>
+                  {meta.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < meta.length-1 ? '1px solid #EEE7DF' : 'none', background: i%2===0 ? '#FDFAF7' : '#FFFFFF' }}>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{item.label}</span>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', fontWeight: 400, textTransform: 'capitalize' }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ border: '1px solid #E6DDD3', marginBottom: '64px' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid #E6DDD3', background: '#FDFAF7', overflowX: 'auto' }}>
+              {[{ key: 'description', label: 'Description' }, { key: 'reviews', label: `Reviews${totalCount > 0 ? ` (${totalCount})` : ''}` }].map(tab => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                  className={`tab-link ${activeTab === tab.key ? 'active' : ''}`}
+                  style={{ padding: 'clamp(12px,2vw,16px) clamp(16px,3vw,32px)', flex: '0 0 auto', borderBottom: activeTab === tab.key ? '2px solid #16100C' : '2px solid transparent', whiteSpace: 'nowrap' }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="detail-tabs-content">
+              {activeTab === 'description' && (
+                <div style={{ maxWidth: '680px' }}>
+                  {product.description
+                    ? <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '14px', color: '#3A2820', lineHeight: 1.8, fontWeight: 300 }}>{product.description}</p>
+                    : <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '14px', color: '#AA9688', fontStyle: 'italic' }}>No description available.</p>
+                  }
+                  {product.ingredients && (
+                    <div style={{ marginTop: '32px', background: '#F4EDE4', border: '1px solid #E6DDD3', padding: '24px' }}>
+                      <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '17px', color: '#16100C', fontWeight: 400, marginBottom: '12px' }}>Key Ingredients</h3>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13.5px', color: '#7B6458', lineHeight: 1.75, fontWeight: 300 }}>{product.ingredients}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'reviews' && (
+                <div style={{ maxWidth: '760px' }}>
+                  {totalCount > 0 && (
+                    <div style={{ border: '1px solid #E6DDD3', background: '#F4EDE4', padding: 'clamp(16px,3vw,28px)', marginBottom: '32px' }}>
+                      <div className="detail-rating-overview">
+                        <div style={{ textAlign: 'center', paddingBottom: '16px', borderBottom: '1px solid #E6DDD3' }}>
+                          <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(40px,6vw,52px)', color: '#16100C', fontWeight: 400, lineHeight: 1, marginBottom: '8px' }}>{avgRating}</p>
+                          <StarRating rating={avgRating} size={13} />
+                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', marginTop: '6px', fontWeight: 300 }}>{totalCount} reviews</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+                          {ratingDist.map(({ star, count, percent }) => (
+                            <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#7B6458', width: '12px', textAlign: 'right', flexShrink: 0 }}>{star}</span>
+                              <Star size={11} strokeWidth={1} style={{ fill: '#B8895A', color: '#B8895A', flexShrink: 0 }} />
+                              <div style={{ flex: 1, height: '4px', background: '#E6DDD3', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${percent}%`, background: star>=4 ? '#4A7A57' : star===3 ? '#B8895A' : '#963838', transition: 'width 0.6s ease' }} />
+                              </div>
+                              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', width: '20px', textAlign: 'right', flexShrink: 0, fontWeight: 300 }}>{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {user
+                    ? <div style={{ marginBottom: '32px' }}><ReviewForm productSlug={slug} onSubmit={fetchReviews} /></div>
+                    : (
+                      <div style={{ background: '#F4EDE4', border: '1px solid #E6DDD3', padding: '24px', textAlign: 'center', marginBottom: '32px' }}>
+                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13px', color: '#7B6458', marginBottom: '14px', fontWeight: 300 }}>Sign in to write a review</p>
+                        <Link to="/login" className="btn-outline" style={{ fontSize: '11px', display: 'inline-flex' }}>Sign In to Review</Link>
+                      </div>
+                    )
+                  }
+
+                  {reviews.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                      <Star size={32} strokeWidth={0.8} style={{ color: '#E6DDD3', margin: '0 auto 16px' }} />
+                      <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>No reviews yet</p>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13px', color: '#AA9688', fontWeight: 300 }}>Be the first to share your experience</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: '#E6DDD3' }}>
+                      {reviews.map((review, i) => (
+                        <div key={i} style={{ background: '#FFFFFF', padding: 'clamp(16px,3vw,24px)' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <User size={16} strokeWidth={1.5} style={{ color: '#B8895A' }} />
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13.5px', color: '#16100C', fontWeight: 400 }}>{review.user_name || 'Anonymous'}</span>
+                                  {review.is_verified_purchase && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#4A7A57', background: '#EEF6F1', border: '1px solid #C4DAC8', padding: '2px 8px', fontWeight: 400 }}>
+                                      <CheckCircle size={10} strokeWidth={1.5} /> Verified
+                                    </span>
+                                  )}
+                                </div>
+                                <StarRating rating={review.rating} size={11} />
+                              </div>
+                            </div>
+                            <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', flexShrink: 0, fontWeight: 300, paddingTop: '2px' }}>
+                              {new Date(review.created_at).toLocaleDateString('en-NP', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          {review.comment && (
+                            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, paddingLeft: '50px' }}>{review.comment}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
             </div>
-
-            {/* Price */}
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl sm:text-4xl font-black text-purple-700">Rs. {product.discounted_price}</span>
-              {product.discount_percent > 0 && (
-                <>
-                  <span className="text-lg text-gray-400 line-through">Rs. {product.price}</span>
-                  <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-xl">
-                    Save Rs. {(parseFloat(product.price) - parseFloat(product.discounted_price)).toFixed(0)}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Stock indicator */}
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${inStock ? 'bg-green-500' : 'bg-red-500'}`}
-                style={inStock ? {boxShadow:'0 0 0 3px rgba(34,197,94,0.2)'} : {}} />
-              <span className={`font-semibold text-sm ${inStock ? 'text-green-600' : 'text-red-500'}`}>
-                {product.stock_status || (inStock ? `In Stock${product.stock ? ` (${product.stock} left)` : ''}` : 'Out of Stock')}
-              </span>
-            </div>
-
-            {/* Quantity selector */}
-            {inStock && (
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-semibold text-gray-700">Quantity</span>
-                <div className="flex items-center border-2 border-gray-200 rounded-2xl overflow-hidden">
-                  <button onClick={() => setQuantity(q => Math.max(1, q-1))}
-                    className="w-11 h-11 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold text-xl transition-colors">
-                    −
-                  </button>
-                  <span className="w-12 text-center font-black text-gray-900">{quantity}</span>
-                  <button onClick={() => setQuantity(q => Math.min(product.stock || 99, q+1))}
-                    className="w-11 h-11 flex items-center justify-center hover:bg-gray-100 text-gray-600 font-bold text-xl transition-colors">
-                    +
-                  </button>
-                </div>
-                {product.stock && product.stock <= 10 && (
-                  <span className="text-xs text-red-500 font-semibold">Only {product.stock} left!</span>
-                )}
-              </div>
-            )}
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-1">
-              <button onClick={addToCart} disabled={adding || !inStock}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.98]"
-                style={!adding && inStock ? {boxShadow:'0 8px 24px rgba(124,58,237,0.3)'} : {}}>
-                {adding
-                  ? <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Adding...</>
-                  : <>🛒 Add to Cart</>}
-              </button>
-
-              <button onClick={buyNow} disabled={!inStock}
-                className="flex-1 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white disabled:opacity-30 font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.98]">
-                ⚡ {inStock ? 'Buy Now' : 'Out of Stock'}
-              </button>
-
-              {/* Wishlist */}
-              <button onClick={() => toggleWishlist?.(product.id)}
-                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all ${
-                  wishlisted ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-red-300 hover:bg-red-50'}`}>
-                <svg className={`w-5 h-5 transition-colors ${wishlisted ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`}
-                  viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
-                  fill={wishlisted ? 'currentColor' : 'none'}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-              </button>
-            </div>
-
-            {/* Delivery info pills */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {[
-                { icon:'🚚', label:'Free delivery above Rs. 2000' },
-                { icon:'↩️', label:'Easy returns' },
-                { icon:'✅', label:'Genuine products' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-full text-xs text-gray-600 font-medium">
-                  <span>{item.icon}</span>{item.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Product meta */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              {[
-                { label: 'Brand',        value: product.brand },
-                { label: 'Category',     value: product.category?.name || product.category_name },
-                { label: 'Skin Type',    value: product.suitable_skin_type },
-                { label: 'Skin Concern', value: product.skin_concern },
-                { label: 'Gender',       value: product.gender },
-              ].filter(i => i.value).map((item, i, arr) => (
-                <div key={i} className={`flex justify-between items-center px-5 py-3 text-sm ${i < arr.length - 1 ? 'border-b border-gray-50' : ''} ${i % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
-                  <span className="text-gray-500 font-medium">{item.label}</span>
-                  <span className="font-bold text-gray-800 capitalize">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Tabs ── */}
-        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-12">
-          <div className="flex border-b border-gray-100">
-            {[
-              { key: 'description', label: 'Description' },
-              { key: 'reviews',     label: `Reviews${totalCount > 0 ? ` (${totalCount})` : ''}` },
-            ].map(tab => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 py-4 font-bold text-sm transition-all relative ${
-                  activeTab === tab.key ? 'text-purple-600 bg-purple-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
-                {tab.label}
-                {activeTab === tab.key && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-                )}
-              </button>
-            ))}
           </div>
 
-          <div className="p-6 sm:p-8">
-
-            {/* Description Tab */}
-            {activeTab === 'description' && (
-              <div className="space-y-6 max-w-3xl">
-                {product.description ? (
-                  <p className="text-gray-600 leading-relaxed text-base">{product.description}</p>
-                ) : (
-                  <p className="text-gray-400 italic">No description available.</p>
-                )}
-                {product.ingredients && (
-                  <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                    <h3 className="font-black text-gray-900 mb-3 flex items-center gap-2">
-                      <span className="text-lg">🧪</span> Key Ingredients
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">{product.ingredients}</p>
-                  </div>
-                )}
+          {/* Related */}
+          {related.length > 0 && (
+            <div style={{ marginBottom: '64px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div className="section-eyebrow">You May Also Like</div>
+                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(20px,2.5vw,26px)', color: '#16100C', fontWeight: 400 }}>Related Products</h2>
+                </div>
+                <Link to={`/products?category=${product.category}`} className="btn-ghost" style={{ fontSize: '12px', gap: '4px' }}>View All <ChevronRight size={13} strokeWidth={1.5} /></Link>
               </div>
-            )}
-
-            {/* Reviews Tab */}
-            {activeTab === 'reviews' && (
-              <div className="space-y-7">
-
-                {/* Rating Overview */}
-                {totalCount > 0 && (
-                  <div className="flex flex-col sm:flex-row gap-6 bg-linear-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-                    {/* Big number */}
-                    <div className="flex flex-col items-center justify-center text-center shrink-0 min-w-32.5">
-                      <p className="text-7xl font-black text-purple-700 leading-none mb-2">{avgRating}</p>
-                      <StarRating rating={avgRating} size="md" />
-                      <p className="text-gray-500 text-sm mt-2 font-medium">
-                        {totalCount} {totalCount === 1 ? 'review' : 'reviews'}
-                      </p>
+              <div className="detail-related-grid">
+                {related.map(p => (
+                  <Link key={p.id} to={`/products/${p.slug}`} className="product-card" style={{ display: 'block', textDecoration: 'none' }}>
+                    <div className="card-image">
+                      {p.image
+                        ? <img src={getProductImageUrl(p.image)} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F4EDE4' }}><Package size={36} strokeWidth={1} style={{ color: '#D4C4B0' }} /></div>
+                      }
                     </div>
-
-                    <div className="hidden sm:block w-px bg-purple-200/60" />
-
-                    {/* Bars */}
-                    <div className="flex-1 space-y-3">
-                      {ratingDist.map(({ star, count, percent }) => (
-                        <div key={star} className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-gray-600 w-3 text-right shrink-0">{star}</span>
-                          <span className="text-amber-400 text-sm shrink-0">★</span>
-                          <div className="flex-1 bg-white rounded-full h-2.5 overflow-hidden border border-gray-100">
-                            <div className="h-full rounded-full transition-all duration-700"
-                              style={{
-                                width: `${percent}%`,
-                                background: star >= 4 ? '#22c55e' : star === 3 ? '#f59e0b' : '#ef4444',
-                              }} />
-                          </div>
-                          <span className="text-gray-700 text-xs font-bold w-5 text-right shrink-0">{count}</span>
-                          <span className="text-gray-400 text-xs w-8 shrink-0">{percent}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Review Form or Login prompt */}
-                {user ? (
-                  <ReviewForm productSlug={slug} onSubmit={fetchReviews} />
-                ) : (
-                  <div className="bg-gray-50 rounded-2xl p-6 text-center border border-gray-100">
-                    <p className="text-gray-500 mb-3 text-sm">Login to write a review</p>
-                    <Link to="/login"
-                      className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors">
-                      Login to Review →
-                    </Link>
-                  </div>
-                )}
-
-                {/* Review List */}
-                {reviews.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <div className="text-5xl mb-3">⭐</div>
-                    <p className="font-medium">No reviews yet</p>
-                    <p className="text-sm mt-1">Be the first to share your experience!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {reviews.map((review, i) => (
-                      <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-purple-200 transition-colors">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-white text-sm shrink-0"
-                              style={{background:'linear-gradient(135deg,#7c3aed,#ec4899)'}}>
-                              {review.user_name?.[0]?.toUpperCase() || '?'}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-gray-900 text-sm">{review.user_name || 'Anonymous'}</span>
-                                {review.is_verified_purchase && (
-                                  <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full border border-green-200">
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Verified Purchase
-                                  </span>
-                                )}
-                              </div>
-                              <StarRating rating={review.rating} size="sm" />
-                            </div>
-                          </div>
-                          <span className="text-gray-400 text-xs shrink-0 pt-0.5">
-                            {new Date(review.created_at).toLocaleDateString('en-NP', {
-                              year: 'numeric', month: 'short', day: 'numeric'
-                            })}
-                          </span>
-                        </div>
-                        {review.comment && (
-                          <p className="text-gray-600 text-sm leading-relaxed pl-13">{review.comment}</p>
-                        )}
+                    <div className="card-body">
+                      <p className="card-category">{p.brand}</p>
+                      <p className="card-name">{p.name}</p>
+                      <div className="card-price">
+                        {p.discount_percent > 0 && <span className="original">Rs. {p.price}</span>}
+                        <span className={p.discount_percent > 0 ? 'sale' : ''}>Rs. {p.discounted_price}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Related Products ── */}
-        {related.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black text-gray-900">Related Products</h2>
-              <Link to={`/products?category=${product.category}`}
-                className="text-sm text-purple-600 font-semibold hover:text-purple-700 transition-colors">
-                View all →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              {related.map(p => (
-                <Link key={p.id} to={`/products/${p.slug}`}
-                  className="bg-white rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all duration-300 overflow-hidden group active:scale-[0.98]">
-                  <div className="bg-linear-to-br from-purple-50 to-pink-50 h-36 sm:h-44 flex items-center justify-center overflow-hidden">
-                    {p.image
-                      ? <img src={getProductImageUrl(p.image)} alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      : <span className="text-4xl">🧴</span>}
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs text-purple-600 font-bold truncate">{p.brand}</p>
-                    <p className="text-xs sm:text-sm font-bold text-gray-800 line-clamp-2 mt-0.5 leading-snug group-hover:text-purple-600 transition-colors">{p.name}</p>
-                    {p.review_count > 0 && (
-                      <div className="flex items-center gap-1 mt-1.5">
-                        <span className="text-amber-400 text-xs">★</span>
-                        <span className="text-xs text-gray-700 font-bold">{p.avg_rating}</span>
-                        <span className="text-xs text-gray-400">({p.review_count})</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="text-purple-700 font-black text-sm">Rs. {p.discounted_price}</span>
-                      {p.discount_percent > 0 && (
-                        <span className="text-xs text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded-full">-{p.discount_percent}%</span>
-                      )}
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }

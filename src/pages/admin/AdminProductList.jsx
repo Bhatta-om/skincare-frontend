@@ -1,16 +1,23 @@
-// src/pages/admin/AdminProductList.jsx — Mobile Polish
+// src/pages/admin/AdminProductList.jsx — Professional Dark Admin
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
-import AdminLayout from './AdminLayout'
+import AdminLayout, { A } from './AdminLayout'
 import { getProductImageUrl } from '../../utils/productImage'
+import { Search, Plus, Pencil, Trash2, Star, Package } from 'lucide-react'
+
+const AdminToast = ({ message }) => message.text ? (
+  <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: message.type === 'success' ? A.success : A.danger, color: '#FFFFFF', padding: '12px 20px', fontFamily: A.sans, fontSize: '13px', fontWeight: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+    {message.text}
+  </div>
+) : null
 
 export default function AdminProductList() {
   const [products, setProducts] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
+  const [loading,  setLoading]  = useState(true)
+  const [search,   setSearch]   = useState('')
   const [deleting, setDeleting] = useState(null)
-  const [message, setMessage]   = useState({ text: '', type: '' })
+  const [message,  setMessage]  = useState({ text: '', type: '' })
 
   const fetchProducts = () => {
     setLoading(true)
@@ -23,167 +30,166 @@ export default function AdminProductList() {
 
   useEffect(() => { fetchProducts() }, [search])
 
-  const showMsg = (text, type) => {
-    setMessage({ text, type })
-    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
-  }
+  const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000) }
 
   const deleteProduct = async (slug, name) => {
-    if (!window.confirm(`Delete "${name}"?`)) return
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
     setDeleting(slug)
     try {
       await api.delete(`/products/${slug}/`)
-      showMsg(`"${name}" deleted!`, 'success')
+      showMsg(`"${name}" deleted`, 'success')
       fetchProducts()
-    } catch {
-      showMsg('Failed to delete.', 'error')
-    } finally {
-      setDeleting(null)
-    }
+    } catch { showMsg('Failed to delete product.', 'error') }
+    finally { setDeleting(null) }
+  }
+
+  const stockStyle = (status) => {
+    if (!status || status === 'Out of Stock') return { color: A.danger,  bg: 'rgba(150,56,56,0.12)'  }
+    if (status.startsWith('Low'))             return { color: A.warning, bg: 'rgba(137,103,15,0.12)' }
+    return { color: A.success, bg: 'rgba(74,122,87,0.12)' }
   }
 
   return (
     <AdminLayout>
-      <div className="space-y-4">
-
-        {/* Toast */}
-        {message.text && (
-          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-lg text-white text-sm font-medium ${
-            message.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-            {message.text}
-          </div>
-        )}
+      <AdminToast message={message} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Header */}
-        <div className="flex gap-2">
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Search products..."
-            className="flex-1 bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-          <Link to="/admin/products/add"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap">
-            + Add
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={13} strokeWidth={1.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: A.textDim, pointerEvents: 'none' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products..."
+              style={{ width: '100%', background: A.surface, border: `1px solid ${A.border2}`, color: A.text, padding: '9px 14px 9px 34px', fontFamily: A.sans, fontSize: '12.5px', outline: 'none', transition: 'border-color 0.15s', fontWeight: 300 }}
+              onFocus={e => e.target.style.borderColor = A.accent}
+              onBlur={e  => e.target.style.borderColor = A.border2}
+            />
+          </div>
+          <Link to="/admin/products/add" style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: A.accent, color: '#FFFFFF',
+            padding: '9px 16px', textDecoration: 'none',
+            fontFamily: A.sans, fontSize: '12px', fontWeight: 400,
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            transition: 'background 0.15s', flexShrink: 0,
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = A.accentHov}
+            onMouseLeave={e => e.currentTarget.style.background = A.accent}
+          >
+            <Plus size={14} strokeWidth={2} /> Add Product
           </Link>
         </div>
 
-        <p className="text-gray-600 text-xs">{products.length} products</p>
+        <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300 }}>{products.length} products</p>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+            <div style={{ width: '32px', height: '32px', border: `1.5px solid ${A.border2}`, borderTopColor: A.accent, borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-16 bg-gray-900 rounded-2xl border border-gray-800">
-            <p className="text-5xl mb-3">🧴</p>
-            <p className="text-gray-400 text-sm mb-4">No products found</p>
-            <Link to="/admin/products/add" className="text-purple-400 text-sm hover:text-purple-300">+ Add first product</Link>
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: A.surface, border: `1px solid ${A.border}` }}>
+            <Package size={32} strokeWidth={1} style={{ color: A.textDim, margin: '0 auto 16px' }} />
+            <p style={{ fontFamily: A.sans, fontSize: '13px', color: A.textMid, marginBottom: '16px' }}>No products found</p>
+            <Link to="/admin/products/add" style={{ fontFamily: A.sans, fontSize: '12px', color: A.accent, textDecoration: 'none' }}>Add your first product →</Link>
           </div>
         ) : (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-
-            {/* Desktop table header */}
-            <div className="hidden md:grid grid-cols-12 gap-3 px-5 py-3 border-b border-gray-800 text-gray-600 text-xs font-semibold uppercase tracking-wider">
-              <div className="col-span-5">Product</div>
-              <div className="col-span-2 text-center">Price</div>
-              <div className="col-span-2 text-center">Stock</div>
-              <div className="col-span-1 text-center">Status</div>
-              <div className="col-span-2 text-center">Actions</div>
+          <div style={{ background: A.surface, border: `1px solid ${A.border}`, overflow: 'hidden' }}>
+            {/* Desktop header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 1.2fr 1.2fr 1fr 100px', gap: '12px', padding: '10px 18px', borderBottom: `1px solid ${A.border}`, background: A.bg }} className="admin-prod-header">
+              {['Product','Price','Stock','Status','Actions'].map((h, i) => (
+                <div key={h} style={{ fontFamily: A.sans, fontSize: '9.5px', color: A.textDim, textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 400, textAlign: i > 0 ? 'center' : 'left' }}>{h}</div>
+              ))}
             </div>
 
-            <div className="divide-y divide-gray-800/60">
-              {products.map(product => (
-                <div key={product.id}
-                  className="hover:bg-gray-800/20 transition-colors">
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {products.map((product, i) => {
+                const ss = stockStyle(product.stock_status)
+                return (
+                  <div key={product.id} style={{ borderBottom: i < products.length - 1 ? `1px solid ${A.border}` : 'none' }}>
 
-                  {/* ── Mobile card layout ── */}
-                  <div className="md:hidden flex items-center gap-3 p-4">
-                    <div className="w-14 h-14 bg-gray-800 rounded-xl overflow-hidden shrink-0">
-                      {product.image
-                        ? <img src={getProductImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-xl">🧴</div>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{product.name}</p>
-                      <p className="text-gray-500 text-xs">{product.brand} · {product.category_name}</p>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className="text-purple-400 text-xs font-bold">Rs. {product.discounted_price}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          product.stock_status === 'Out of Stock'
-                            ? 'bg-red-500/20 text-red-400'
-                            : product.stock_status?.startsWith('Low')
-                            ? 'bg-orange-500/20 text-orange-400'
-                            : 'bg-green-500/20 text-green-400'}`}>
-                          {product.stock_status}
+                    {/* Desktop row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '3fr 1.2fr 1.2fr 1fr 100px', gap: '12px', padding: '12px 18px', alignItems: 'center' }} className="admin-prod-desktop">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                        <div style={{ width: '40px', height: '40px', background: '#1A1A1A', border: `1px solid ${A.border}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {product.image ? <img src={getProductImageUrl(product.image)} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={16} strokeWidth={1} style={{ color: A.textDim }} />}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontFamily: A.sans, fontSize: '12.5px', color: A.text, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</p>
+                          <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300 }}>
+                            {product.brand} · {product.category_name}
+                            {product.is_featured && <Star size={10} strokeWidth={1.5} style={{ color: A.warning, display: 'inline', marginLeft: '5px', verticalAlign: 'middle' }} />}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ fontFamily: A.serif, fontSize: '14px', color: A.text, fontWeight: 400 }}>Rs. {product.discounted_price}</p>
+                        {product.discount_percent > 0 && <p style={{ fontFamily: A.sans, fontSize: '10px', color: A.textDim, textDecoration: 'line-through', fontWeight: 300 }}>Rs. {product.price}</p>}
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontFamily: A.sans, fontSize: '10px', color: ss.color, background: ss.bg, padding: '3px 8px', textTransform: 'capitalize', letterSpacing: '0.06em' }}>{product.stock_status}</span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontFamily: A.sans, fontSize: '10px', color: product.is_available ? A.success : A.textDim, background: product.is_available ? 'rgba(74,122,87,0.12)' : A.bg, padding: '3px 8px', letterSpacing: '0.06em' }}>
+                          {product.is_available ? 'Live' : 'Off'}
                         </span>
-                        {product.is_featured && <span className="text-yellow-400 text-xs">⭐</span>}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <Link to={`/admin/products/edit/${product.slug}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', border: `1px solid ${A.info}30`, background: `rgba(43,95,166,0.1)`, color: A.info, textDecoration: 'none', transition: 'all 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(43,95,166,0.2)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(43,95,166,0.1)'}
+                        >
+                          <Pencil size={12} strokeWidth={1.5} />
+                        </Link>
+                        <button onClick={() => deleteProduct(product.slug, product.name)} disabled={deleting === product.slug}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px', border: `1px solid ${A.danger}30`, background: 'rgba(150,56,56,0.1)', color: A.danger, cursor: 'pointer', transition: 'all 0.15s', opacity: deleting === product.slug ? 0.5 : 1 }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(150,56,56,0.2)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'rgba(150,56,56,0.1)'}
+                        >
+                          <Trash2 size={12} strokeWidth={1.5} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-1.5 shrink-0">
-                      <Link to={`/admin/products/edit/${product.slug}`}
-                        className="px-3 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-medium text-center hover:bg-blue-500/30 transition-colors">
-                        Edit
-                      </Link>
-                      <button onClick={() => deleteProduct(product.slug, product.name)}
-                        disabled={deleting === product.slug}
-                        className="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/30 transition-colors disabled:opacity-40">
-                        {deleting === product.slug ? '...' : 'Del'}
-                      </button>
-                    </div>
-                  </div>
 
-                  {/* ── Desktop table row ── */}
-                  <div className="hidden md:grid grid-cols-12 gap-3 px-5 py-3.5 items-center">
-                    <div className="col-span-5 flex items-center gap-3">
-                      <div className="w-11 h-11 bg-gray-800 rounded-xl overflow-hidden shrink-0">
-                        {product.image
-                          ? <img src={getProductImageUrl(product.image)} alt={product.name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center">🧴</div>}
+                    {/* Mobile card */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px' }} className="admin-prod-mobile">
+                      <div style={{ width: '52px', height: '52px', background: '#1A1A1A', border: `1px solid ${A.border}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {product.image ? <img src={getProductImageUrl(product.image)} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} strokeWidth={1} style={{ color: A.textDim }} />}
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-white text-sm font-medium truncate">{product.name}</p>
-                        <p className="text-gray-500 text-xs">{product.brand} · {product.category_name}</p>
-                        {product.is_featured && <span className="text-yellow-400 text-xs">⭐ Featured</span>}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: A.sans, fontSize: '12.5px', color: A.text, fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</p>
+                        <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300, marginTop: '2px' }}>{product.brand}</p>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: A.serif, fontSize: '13px', color: A.accent }}>Rs. {product.discounted_price}</span>
+                          <span style={{ fontFamily: A.sans, fontSize: '10px', color: ss.color, background: ss.bg, padding: '2px 7px', letterSpacing: '0.04em' }}>{product.stock_status}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="col-span-2 text-center">
-                      <p className="text-white text-sm">Rs. {product.discounted_price}</p>
-                      {product.discount_percent > 0 && (
-                        <p className="text-gray-600 text-xs line-through">Rs. {product.price}</p>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        product.stock_status === 'Out of Stock'
-                          ? 'bg-red-500/20 text-red-400'
-                          : product.stock_status?.startsWith('Low')
-                          ? 'bg-orange-500/20 text-orange-400'
-                          : 'bg-green-500/20 text-green-400'}`}>
-                        {product.stock_status}
-                      </span>
-                    </div>
-                    <div className="col-span-1 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        product.is_available ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
-                        {product.is_available ? 'On' : 'Off'}
-                      </span>
-                    </div>
-                    <div className="col-span-2 flex justify-center gap-2">
-                      <Link to={`/admin/products/edit/${product.slug}`}
-                        className="px-3 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs hover:bg-blue-500/30 transition-colors">
-                        Edit
-                      </Link>
-                      <button onClick={() => deleteProduct(product.slug, product.name)}
-                        disabled={deleting === product.slug}
-                        className="px-3 py-1.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs hover:bg-red-500/30 transition-colors disabled:opacity-40">
-                        {deleting === product.slug ? '...' : 'Del'}
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+                        <Link to={`/admin/products/edit/${product.slug}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', border: `1px solid ${A.info}30`, background: 'rgba(43,95,166,0.1)', color: A.info, textDecoration: 'none', fontFamily: A.sans, fontSize: '11px', fontWeight: 400 }}>
+                          <Pencil size={11} strokeWidth={1.5} /> Edit
+                        </Link>
+                        <button onClick={() => deleteProduct(product.slug, product.name)} disabled={deleting === product.slug}
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', border: `1px solid ${A.danger}30`, background: 'rgba(150,56,56,0.1)', color: A.danger, cursor: 'pointer', fontFamily: A.sans, fontSize: '11px', fontWeight: 400 }}>
+                          <Trash2 size={11} strokeWidth={1.5} /> Del
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
       </div>
+
+      <style>{`
+        .admin-prod-header  { display: grid  !important; }
+        .admin-prod-desktop { display: grid  !important; }
+        .admin-prod-mobile  { display: none  !important; }
+        @media (max-width: 768px) {
+          .admin-prod-header  { display: none  !important; }
+          .admin-prod-desktop { display: none  !important; }
+          .admin-prod-mobile  { display: flex  !important; }
+        }
+      `}</style>
     </AdminLayout>
   )
 }

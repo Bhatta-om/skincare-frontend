@@ -1,223 +1,162 @@
-// src/pages/admin/AdminCategories.jsx
+// src/pages/admin/AdminCategories.jsx — Professional Dark Admin
 import React, { useState, useEffect } from 'react'
 import api from '../../api/axios'
-import AdminLayout from './AdminLayout'
+import AdminLayout, { A } from './AdminLayout'
+import { Plus, Pencil, Trash2, Eye, EyeOff, Upload, X, FolderOpen } from 'lucide-react'
+
+const AdminToast = ({ message }) => message.text ? (
+  <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999, background: message.type === 'success' ? A.success : A.danger, color: '#FFFFFF', padding: '12px 20px', fontFamily: A.sans, fontSize: '13px', fontWeight: 400, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+    {message.text}
+  </div>
+) : null
+
+const inp = { width: '100%', background: '#1A1A1A', border: `1px solid ${A.border2}`, color: A.text, padding: '10px 14px', fontFamily: A.sans, fontSize: '12.5px', outline: 'none', transition: 'border-color 0.15s', fontWeight: 300, boxSizing: 'border-box' }
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [showForm, setShowForm]     = useState(false)
-  const [editItem, setEditItem]     = useState(null)
-  const [deleting, setDeleting]     = useState(null)
-  const [message, setMessage]       = useState({ text: '', type: '' })
-  const [form, setForm]             = useState({ name: '', description: '', is_active: true, image: null })
-  const [preview, setPreview]       = useState(null)
-  const [saving, setSaving]         = useState(false)
-  const [errors, setErrors]         = useState({})
+  const [loading,    setLoading]    = useState(true)
+  const [showForm,   setShowForm]   = useState(false)
+  const [editItem,   setEditItem]   = useState(null)
+  const [deleting,   setDeleting]   = useState(null)
+  const [message,    setMessage]    = useState({ text: '', type: '' })
+  const [form,       setForm]       = useState({ name: '', description: '', is_active: true, image: null })
+  const [preview,    setPreview]    = useState(null)
+  const [saving,     setSaving]     = useState(false)
+  const [errors,     setErrors]     = useState({})
 
-  const inputCls = "w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
-
-  const showMsg = (text, type) => {
-    setMessage({ text, type })
-    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
-  }
+  const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000) }
 
   const fetchCategories = async () => {
     try {
-      // Fetch all categories including inactive ones for admin
       const res = await api.get('/products/categories/?is_active=all')
       setCategories(res.data.results || res.data || [])
     } catch {
-      try {
-        // Fallback to default endpoint
-        const res = await api.get('/products/categories/')
-        setCategories(res.data.results || res.data || [])
-      } catch {
-        showMsg('Failed to load categories.', 'error')
-      }
-    } finally {
-      setLoading(false)
-    }
+      try { const res = await api.get('/products/categories/'); setCategories(res.data.results || res.data || []) }
+      catch { showMsg('Failed to load categories.', 'error') }
+    } finally { setLoading(false) }
   }
 
   useEffect(() => { fetchCategories() }, [])
 
-  const openAdd = () => {
-    setEditItem(null)
-    setForm({ name: '', description: '', is_active: true, image: null })
-    setPreview(null)
-    setErrors({})
-    setShowForm(true)
-  }
-
-  const openEdit = (cat) => {
-    setEditItem(cat)
-    setForm({ name: cat.name, description: cat.description || '', is_active: cat.is_active ?? true, image: null })
-    setPreview(cat.image || null)
-    setErrors({})
-    setShowForm(true)
-  }
-
-  const handleChange = e => {
-    const { name, value, type, checked } = e.target
-    setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }))
-  }
-
-  const handleImage = e => {
-    const file = e.target.files[0]
-    if (!file) return
-    setForm(prev => ({ ...prev, image: file }))
-    setPreview(URL.createObjectURL(file))
-  }
+  const openAdd = () => { setEditItem(null); setForm({ name: '', description: '', is_active: true, image: null }); setPreview(null); setErrors({}); setShowForm(true) }
+  const openEdit = (cat) => { setEditItem(cat); setForm({ name: cat.name, description: cat.description||'', is_active: cat.is_active??true, image: null }); setPreview(cat.image||null); setErrors({}); setShowForm(true) }
+  const handleChange = e => { const { name, value, type, checked } = e.target; setForm(p => ({ ...p, [name]: type==='checkbox'?checked:value })); if (errors[name]) setErrors(p => ({ ...p, [name]: '' })) }
+  const handleImage  = e => { const file = e.target.files[0]; if (!file) return; setForm(p => ({ ...p, image: file })); setPreview(URL.createObjectURL(file)) }
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) {
-      setErrors({ name: 'Name is required' })
-      return
-    }
+    if (!form.name.trim()) { setErrors({ name: 'Name is required' }); return }
     setSaving(true)
-    const formData = new FormData()
-    formData.append('name', form.name)
-    formData.append('description', form.description)
-    formData.append('is_active', form.is_active ? 'true' : 'false')
-    if (form.image) formData.append('image', form.image)
-
+    const fd = new FormData()
+    fd.append('name', form.name); fd.append('description', form.description); fd.append('is_active', form.is_active ? 'true' : 'false')
+    if (form.image) fd.append('image', form.image)
     try {
-      if (editItem) {
-        await api.patch(`/products/categories/${editItem.slug}/`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        showMsg('Category updated successfully!', 'success')
-      } else {
-        await api.post('/products/categories/', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
-        showMsg('Category created successfully!', 'success')
-      }
-      setShowForm(false)
-      fetchCategories()
+      if (editItem) { await api.patch(`/products/categories/${editItem.slug}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Category updated', 'success') }
+      else          { await api.post('/products/categories/', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Category created', 'success') }
+      setShowForm(false); fetchCategories()
     } catch (err) {
       const data = err.response?.data
       if (data && typeof data === 'object') setErrors(data)
       else showMsg('Something went wrong.', 'error')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   const handleDelete = async (cat) => {
-    if (!window.confirm(`Delete "${cat.name}"? This may affect existing products.`)) return
+    if (!window.confirm(`Delete "${cat.name}"? This may affect products.`)) return
     setDeleting(cat.id)
-    try {
-      await api.delete(`/products/categories/${cat.slug}/`)
-      showMsg('Category deleted!', 'success')
-      fetchCategories()
-    } catch {
-      showMsg('Failed to delete. Category may have products.', 'error')
-    } finally {
-      setDeleting(null)
-    }
+    try { await api.delete(`/products/categories/${cat.slug}/`); showMsg('Category deleted', 'success'); fetchCategories() }
+    catch { showMsg('Failed to delete — category may have products.', 'error') }
+    finally { setDeleting(null) }
   }
 
   const toggleActive = async (cat) => {
-    try {
-      await api.patch(`/products/categories/${cat.slug}/`, {
-        is_active: !cat.is_active
-      })
-      showMsg(`Category ${!cat.is_active ? 'activated' : 'deactivated'}!`, 'success')
-      fetchCategories()
-    } catch {
-      showMsg('Failed to update status.', 'error')
-    }
+    try { await api.patch(`/products/categories/${cat.slug}/`, { is_active: !cat.is_active }); showMsg(`Category ${!cat.is_active ? 'activated' : 'deactivated'}`, 'success'); fetchCategories() }
+    catch { showMsg('Failed to update.', 'error') }
   }
 
   return (
     <AdminLayout>
-      {/* Toast */}
-      {message.text && (
-        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-white text-sm font-medium ${
-          message.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-          {message.text}
-        </div>
-      )}
+      <AdminToast message={message} />
 
-      <div className="space-y-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 className="text-white font-bold text-xl">Categories</h2>
-            <p className="text-gray-500 text-sm">{categories.length} categories total</p>
+            <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '4px', fontWeight: 400 }}>Categories</p>
+            <p style={{ fontFamily: A.sans, fontSize: '12px', color: A.textMid, fontWeight: 300 }}>{categories.length} total</p>
           </div>
-          <button onClick={openAdd}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
-            <span>+</span> Add Category
+          <button onClick={openAdd} style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: A.accent, color: '#FFFFFF',
+            border: 'none', padding: '9px 16px', cursor: 'pointer',
+            fontFamily: A.sans, fontSize: '11.5px', fontWeight: 400,
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = A.accentHov}
+            onMouseLeave={e => e.currentTarget.style.background = A.accent}
+          >
+            <Plus size={13} strokeWidth={2} /> Add Category
           </button>
         </div>
 
-        {/* Categories Grid */}
+        {/* Grid */}
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+            <div style={{ width: '32px', height: '32px', border: `1.5px solid ${A.border2}`, borderTopColor: A.accent, borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
           </div>
         ) : categories.length === 0 ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
-            <p className="text-4xl mb-3">📂</p>
-            <p className="text-white font-medium">No categories yet</p>
-            <p className="text-gray-500 text-sm mt-1">Add your first category to get started</p>
-            <button onClick={openAdd}
-              className="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-xl text-sm transition-colors">
-              + Add Category
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: A.surface, border: `1px solid ${A.border}` }}>
+            <FolderOpen size={32} strokeWidth={1} style={{ color: A.textDim, margin: '0 auto 16px' }} />
+            <p style={{ fontFamily: A.sans, fontSize: '13px', color: A.textMid, marginBottom: '16px' }}>No categories yet</p>
+            <button onClick={openAdd} style={{ background: A.accent, color: '#FFFFFF', border: 'none', padding: '9px 20px', cursor: 'pointer', fontFamily: A.sans, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              Add First Category
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
             {categories.map(cat => (
-              <div key={cat.id}
-                className={`bg-gray-900 border rounded-2xl overflow-hidden transition-colors ${
-                  cat.is_active ? 'border-gray-800 hover:border-gray-700' : 'border-red-900/50 opacity-70'
-                }`}>
+              <div key={cat.id} style={{ background: A.surface, border: `1px solid ${cat.is_active ? A.border : A.danger + '40'}`, overflow: 'hidden', opacity: cat.is_active ? 1 : 0.65, transition: 'all 0.15s' }}>
                 {/* Image */}
-                <div className="h-32 bg-gray-800 flex items-center justify-center overflow-hidden relative">
-                  {cat.image ? (
-                    <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-4xl">📂</span>
-                  )}
-                  {/* Active badge */}
-                  <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                    cat.is_active ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
-                  }`}>
+                <div style={{ height: '110px', background: A.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                  {cat.image ? <img src={cat.image} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <FolderOpen size={28} strokeWidth={1} style={{ color: A.textDim }} />}
+                  <span style={{
+                    position: 'absolute', top: '8px', right: '8px',
+                    fontFamily: A.sans, fontSize: '9px', fontWeight: 400,
+                    textTransform: 'uppercase', letterSpacing: '0.1em',
+                    color: cat.is_active ? A.success : A.danger,
+                    background: cat.is_active ? 'rgba(74,122,87,0.2)' : 'rgba(150,56,56,0.2)',
+                    border: `1px solid ${cat.is_active ? A.success + '40' : A.danger + '40'}`,
+                    padding: '2px 7px',
+                  }}>
                     {cat.is_active ? 'Active' : 'Inactive'}
-                  </div>
+                  </span>
                 </div>
 
                 {/* Info */}
-                <div className="p-4">
-                  <h3 className="text-white font-semibold text-sm">{cat.name}</h3>
-                  {cat.description && (
-                    <p className="text-gray-500 text-xs mt-1 line-clamp-2">{cat.description}</p>
-                  )}
-                  <p className="text-gray-600 text-xs mt-1">/{cat.slug}</p>
+                <div style={{ padding: '12px' }}>
+                  <p style={{ fontFamily: A.sans, fontSize: '12.5px', color: A.text, fontWeight: 400, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.name}</p>
+                  {cat.description && <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.description}</p>}
+                  <p style={{ fontFamily: A.sans, fontSize: '10px', color: A.textDim, fontWeight: 300, marginBottom: '10px' }}>/{cat.slug}</p>
 
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={() => openEdit(cat)}
-                      className="flex-1 bg-gray-800 hover:bg-gray-700 text-white text-xs py-2 rounded-lg transition-colors">
-                      ✏️ Edit
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button onClick={() => openEdit(cat)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '7px', border: `1px solid ${A.info}30`, background: 'rgba(43,95,166,0.1)', color: A.info, cursor: 'pointer', fontFamily: A.sans, fontSize: '10.5px', transition: 'background 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(43,95,166,0.2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(43,95,166,0.1)'}
+                    >
+                      <Pencil size={11} strokeWidth={1.5} /> Edit
                     </button>
-                    <button onClick={() => toggleActive(cat)}
-                      className={`flex-1 text-xs py-2 rounded-lg transition-colors ${
-                        cat.is_active
-                          ? 'bg-yellow-900/30 hover:bg-yellow-900/50 text-yellow-400'
-                          : 'bg-green-900/30 hover:bg-green-900/50 text-green-400'
-                      }`}>
-                      {cat.is_active ? '⏸ Disable' : '▶ Enable'}
+                    <button onClick={() => toggleActive(cat)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '7px', border: `1px solid ${A.border2}`, background: 'transparent', color: A.textMid, cursor: 'pointer', fontFamily: A.sans, fontSize: '10.5px', transition: 'all 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = A.accent; e.currentTarget.style.color = A.accent }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = A.border2; e.currentTarget.style.color = A.textMid }}
+                    >
+                      {cat.is_active ? <EyeOff size={11} strokeWidth={1.5} /> : <Eye size={11} strokeWidth={1.5} />}
+                      {cat.is_active ? 'Disable' : 'Enable'}
                     </button>
-                    <button onClick={() => handleDelete(cat)}
-                      disabled={deleting === cat.id}
-                      className="flex-1 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs py-2 rounded-lg transition-colors disabled:opacity-50">
-                      {deleting === cat.id ? '...' : '🗑️'}
+                    <button onClick={() => handleDelete(cat)} disabled={deleting === cat.id} style={{ width: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${A.danger}30`, background: 'rgba(150,56,56,0.1)', color: A.danger, cursor: 'pointer', transition: 'background 0.15s', flexShrink: 0, opacity: deleting === cat.id ? 0.5 : 1 }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(150,56,56,0.2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(150,56,56,0.1)'}
+                    >
+                      <Trash2 size={11} strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
@@ -227,79 +166,93 @@ export default function AdminCategories() {
         )}
       </div>
 
-      {/* ── Add/Edit Modal ── */}
+      {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowForm(false)} />
-          <div className="relative bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <h3 className="text-white font-bold text-lg">
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(2px)' }} onClick={() => setShowForm(false)} />
+          <div style={{ position: 'relative', background: A.surface, border: `1px solid ${A.border}`, width: '100%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ height: '2px', background: `linear-gradient(to right, ${A.accent}, #D4A96A, ${A.accent})` }} />
+            <div style={{ padding: '20px', borderBottom: `1px solid ${A.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontFamily: A.sans, fontSize: '13px', color: A.text, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
                 {editItem ? 'Edit Category' : 'Add Category'}
               </h3>
-              <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-white text-xl">✕</button>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.textMid, display: 'flex', padding: '4px' }}
+                onMouseEnter={e => e.currentTarget.style.color = A.text}
+                onMouseLeave={e => e.currentTarget.style.color = A.textMid}
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
             </div>
 
-            {/* Name */}
-            <div>
-              <label className="block text-gray-400 text-sm mb-1.5">Category Name *</label>
-              <input name="name" value={form.name} onChange={handleChange}
-                placeholder="e.g. Moisturizer" className={inputCls} />
-              {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-gray-400 text-sm mb-1.5">Description</label>
-              <textarea name="description" value={form.description} onChange={handleChange}
-                rows={3} placeholder="Category description..." className={inputCls} />
-            </div>
-
-            {/* Image */}
-            <div>
-              <label className="block text-gray-400 text-sm mb-1.5">Category Image</label>
-              <label className="block cursor-pointer">
-                <div className="border-2 border-dashed border-gray-700 hover:border-purple-500 rounded-xl overflow-hidden transition-colors">
-                  {preview ? (
-                    <div className="relative">
-                      <img src={preview} alt="preview" className="w-full h-32 object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs">Click to change</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-24 flex flex-col items-center justify-center text-gray-600 gap-1">
-                      <span className="text-2xl">📷</span>
-                      <span className="text-xs">Click to upload</span>
-                    </div>
-                  )}
-                </div>
-                <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
-              </label>
-            </div>
-
-            {/* Is Active Toggle */}
-            <div className="flex items-center justify-between">
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Name */}
               <div>
-                <p className="text-white text-sm">Active</p>
-                <p className="text-gray-500 text-xs">Show in store</p>
+                <label style={{ display: 'block', fontFamily: A.sans, fontSize: '10px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '6px', fontWeight: 400 }}>
+                  Category Name <span style={{ color: A.danger }}>*</span>
+                </label>
+                <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Moisturizer" style={inp}
+                  onFocus={e => e.target.style.borderColor = A.accent}
+                  onBlur={e  => e.target.style.borderColor = A.border2}
+                />
+                {errors.name && <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.danger, marginTop: '4px', fontWeight: 300 }}>{errors.name}</p>}
               </div>
-              <div
-                onClick={() => setForm(prev => ({ ...prev, is_active: !prev.is_active }))}
-                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${form.is_active ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${form.is_active ? 'left-6' : 'left-1'}`} />
-              </div>
-            </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowForm(false)}
-                className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-2.5 rounded-xl text-sm transition-colors">
-                Cancel
-              </button>
-              <button onClick={handleSubmit} disabled={saving}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-medium transition-colors">
-                {saving ? 'Saving...' : editItem ? 'Update' : 'Create'}
-              </button>
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', fontFamily: A.sans, fontSize: '10px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '6px', fontWeight: 400 }}>Description</label>
+                <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Category description..." style={{ ...inp, resize: 'none' }}
+                  onFocus={e => e.target.style.borderColor = A.accent}
+                  onBlur={e  => e.target.style.borderColor = A.border2}
+                />
+              </div>
+
+              {/* Image */}
+              <div>
+                <label style={{ display: 'block', fontFamily: A.sans, fontSize: '10px', color: A.textMid, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '6px', fontWeight: 400 }}>Category Image</label>
+                <label style={{ display: 'block', cursor: 'pointer' }}>
+                  <div style={{ border: `1.5px dashed ${preview ? A.accent : A.border2}`, transition: 'border-color 0.15s', overflow: 'hidden', minHeight: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {preview ? (
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <img src={preview} alt="preview" style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '20px' }}>
+                        <Upload size={18} strokeWidth={1.5} style={{ color: A.textDim }} />
+                        <span style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim }}>Click to upload</span>
+                      </div>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
+                </label>
+              </div>
+
+              {/* Active toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontFamily: A.sans, fontSize: '12.5px', color: A.text, fontWeight: 400 }}>Active</p>
+                  <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300, marginTop: '1px' }}>Visible in store</p>
+                </div>
+                <div onClick={() => setForm(p => ({ ...p, is_active: !p.is_active }))}
+                  style={{ width: '40px', height: '22px', borderRadius: '11px', background: form.is_active ? A.accent : A.border2, position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <div style={{ position: 'absolute', top: '3px', left: form.is_active ? '21px' : '3px', width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', transition: 'left 0.2s' }} />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+                <button onClick={() => setShowForm(false)} style={{ flex: 1, background: 'transparent', border: `1px solid ${A.border2}`, color: A.textMid, padding: '11px', cursor: 'pointer', fontFamily: A.sans, fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.1em', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = A.muted; e.currentTarget.style.color = A.text }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = A.border2; e.currentTarget.style.color = A.textMid }}
+                >
+                  Cancel
+                </button>
+                <button onClick={handleSubmit} disabled={saving} style={{ flex: 1, background: saving ? A.muted : A.accent, border: 'none', color: '#FFFFFF', padding: '11px', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: A.sans, fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.1em', transition: 'background 0.15s' }}
+                  onMouseEnter={e => { if (!saving) e.currentTarget.style.background = A.accentHov }}
+                  onMouseLeave={e => { if (!saving) e.currentTarget.style.background = A.accent }}
+                >
+                  {saving ? 'Saving...' : editItem ? 'Update' : 'Create'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

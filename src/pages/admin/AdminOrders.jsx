@@ -1,30 +1,41 @@
-// src/pages/admin/AdminOrders.jsx — Mobile Polish
+// src/pages/admin/AdminOrders.jsx — Professional Dark Admin
 import React, { useState, useEffect } from 'react'
 import api from '../../api/axios'
-import AdminLayout from './AdminLayout'
+import AdminLayout, { A } from './AdminLayout'
+import {
+  Search, X, ChevronDown, CheckCircle, Clock,
+  RefreshCw, Truck, Package, XCircle, CreditCard,
+} from 'lucide-react'
 
-const statusColors = {
-  pending:    'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
-  confirmed:  'bg-blue-500/20 text-blue-400 border border-blue-500/30',
-  processing: 'bg-purple-500/20 text-purple-400 border border-purple-500/30',
-  shipped:    'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30',
-  delivered:  'bg-green-500/20 text-green-400 border border-green-500/30',
-  cancelled:  'bg-red-500/20 text-red-400 border border-red-500/30',
+const STATUS_META = {
+  pending:    { color: '#89670F', bg: 'rgba(137,103,15,0.12)',  label: 'Pending',    icon: Clock      },
+  confirmed:  { color: '#2B5FA6', bg: 'rgba(43,95,166,0.12)',  label: 'Confirmed',  icon: CheckCircle },
+  processing: { color: '#B8895A', bg: 'rgba(184,137,90,0.12)', label: 'Processing', icon: RefreshCw  },
+  shipped:    { color: '#5A7FA6', bg: 'rgba(90,127,166,0.12)', label: 'Shipped',    icon: Truck      },
+  delivered:  { color: '#4A7A57', bg: 'rgba(74,122,87,0.12)',  label: 'Delivered',  icon: Package    },
+  cancelled:  { color: '#963838', bg: 'rgba(150,56,56,0.12)',  label: 'Cancelled',  icon: XCircle    },
 }
 
-const paymentColors = {
-  paid:    'bg-green-500/20 text-green-400',
-  pending: 'bg-yellow-500/20 text-yellow-400',
-  failed:  'bg-red-500/20 text-red-400',
+const PAYMENT_META = {
+  paid:    { color: '#4A7A57', bg: 'rgba(74,122,87,0.12)'  },
+  pending: { color: '#89670F', bg: 'rgba(137,103,15,0.12)' },
+  failed:  { color: '#963838', bg: 'rgba(150,56,56,0.12)'  },
 }
 
-const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
+const VALID_STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled']
 
-// Status emoji map
-const statusEmoji = {
-  pending: '📋', confirmed: '✅', processing: '⚙️',
-  shipped: '🚚', delivered: '📦', cancelled: '❌',
-}
+const AdminToast = ({ message }) => message.text ? (
+  <div style={{
+    position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
+    background: message.type === 'success' ? A.success : A.danger,
+    color: '#FFFFFF', padding: '12px 20px',
+    fontFamily: A.sans, fontSize: '13px', fontWeight: 400,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+    animation: 'pageFadeIn 0.2s ease',
+  }}>
+    {message.text}
+  </div>
+) : null
 
 export default function AdminOrders() {
   const [orders,       setOrders]       = useState([])
@@ -42,13 +53,13 @@ export default function AdminOrders() {
     if (statusFilter) params.append('status', statusFilter)
     api.get(`/admin/orders/?${params}`)
       .then(res => setOrders(res.data.orders || []))
-      .catch(() => showMessage('Failed to load orders.', 'error'))
+      .catch(() => showMsg('Failed to load orders.', 'error'))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { fetchOrders() }, [search, statusFilter])
 
-  const showMessage = (text, type) => {
+  const showMsg = (text, type) => {
     setMessage({ text, type })
     setTimeout(() => setMessage({ text: '', type: '' }), 3000)
   }
@@ -57,136 +68,177 @@ export default function AdminOrders() {
     setUpdating(orderId)
     try {
       await api.patch(`/admin/orders/${orderId}/status/`, { status: newStatus })
-      showMessage(`→ ${newStatus}`, 'success')
+      showMsg(`Status updated to ${newStatus}`, 'success')
       fetchOrders()
     } catch {
-      showMessage('Failed to update.', 'error')
-    } finally {
-      setUpdating(null)
-    }
+      showMsg('Failed to update status.', 'error')
+    } finally { setUpdating(null) }
+  }
+
+  const inp = {
+    background: A.surface, border: `1px solid ${A.border2}`,
+    color: A.text, padding: '9px 14px',
+    fontFamily: A.sans, fontSize: '12.5px', outline: 'none',
+    width: '100%', transition: 'border-color 0.15s',
+    fontWeight: 300,
   }
 
   return (
     <AdminLayout>
-      <div className="space-y-4">
+      <AdminToast message={message} />
 
-        {/* Toast */}
-        {message.text && (
-          <div className={`fixed top-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-lg text-white text-sm font-medium ${
-            message.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-            {message.text}
-          </div>
-        )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="🔍 Search order, name..."
-            className="flex-1 bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="bg-gray-900 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-500">
-            <option value="">All Status</option>
-            {validStatuses.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
-          </select>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+            <Search size={13} strokeWidth={1.5} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: A.textDim, pointerEvents: 'none' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search order, name, email..."
+              style={{ ...inp, paddingLeft: '34px' }}
+              onFocus={e => e.target.style.borderColor = A.accent}
+              onBlur={e  => e.target.style.borderColor = A.border2}
+            />
+          </div>
+
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              style={{ ...inp, width: 'auto', paddingRight: '32px', appearance: 'none', cursor: 'pointer' }}
+              onFocus={e => e.target.style.borderColor = A.accent}
+              onBlur={e  => e.target.style.borderColor = A.border2}
+            >
+              <option value="">All Statuses</option>
+              {VALID_STATUSES.map(s => <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+            </select>
+            <ChevronDown size={12} strokeWidth={1.5} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: A.textMid, pointerEvents: 'none' }} />
+          </div>
+
           {(search || statusFilter) && (
             <button onClick={() => { setSearch(''); setStatusFilter('') }}
-              className="text-gray-400 hover:text-white border border-gray-700 px-4 py-2.5 rounded-xl text-sm">
-              Clear
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: `1px solid ${A.border2}`, color: A.textMid, padding: '9px 14px', cursor: 'pointer', fontFamily: A.sans, fontSize: '12px', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = A.text; e.currentTarget.style.borderColor = A.muted }}
+              onMouseLeave={e => { e.currentTarget.style.color = A.textMid; e.currentTarget.style.borderColor = A.border2 }}
+            >
+              <X size={12} strokeWidth={1.5} /> Clear
             </button>
           )}
         </div>
 
-        <p className="text-gray-600 text-xs">{orders.length} orders</p>
+        <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300 }}>{orders.length} orders</p>
 
+        {/* Orders list */}
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+            <div style={{ width: '32px', height: '32px', border: `1.5px solid ${A.border2}`, borderTopColor: A.accent, borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-16 bg-gray-900 rounded-2xl border border-gray-800">
-            <p className="text-5xl mb-3">📦</p>
-            <p className="text-gray-400 text-sm">No orders found</p>
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: A.surface, border: `1px solid ${A.border}` }}>
+            <Package size={32} strokeWidth={1} style={{ color: A.textDim, margin: '0 auto 16px' }} />
+            <p style={{ fontFamily: A.sans, fontSize: '13px', color: A.textMid }}>No orders found</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {orders.map(order => (
-              <div key={order.id}
-                className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-700 transition-colors">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {orders.map(order => {
+              const meta    = STATUS_META[order.status] || STATUS_META.pending
+              const payMeta = PAYMENT_META[order.payment_status] || PAYMENT_META.pending
+              const Icon    = meta.icon
+              const isOpen  = expandedId === order.id
 
-                {/* Order row — tap to expand */}
-                <div className="p-4 cursor-pointer"
-                  onClick={() => setExpandedId(expandedId === order.id ? null : order.id)}>
+              return (
+                <div key={order.id} style={{ background: A.surface, border: `1px solid ${isOpen ? A.accent : A.border}`, overflow: 'hidden', transition: 'border-color 0.15s' }}>
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
+                  {/* Header row */}
+                  <div style={{ padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }} onClick={() => setExpandedId(isOpen ? null : order.id)}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                       {/* Status icon */}
-                      <div className="w-9 h-9 bg-gray-800 rounded-xl flex items-center justify-center text-base shrink-0">
-                        {statusEmoji[order.status] || '📋'}
+                      <div style={{ width: '36px', height: '36px', border: `1px solid ${meta.color}30`, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={15} strokeWidth={1.5} style={{ color: meta.color }} />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-bold text-sm">{order.order_number}</p>
-                        <p className="text-gray-500 text-xs truncate">{order.full_name}</p>
-                        <p className="text-gray-600 text-xs">{order.city} · {order.items_count} item{order.items_count !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <p className="text-white font-bold text-sm">Rs. {order.total_amount}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${statusColors[order.status] || 'bg-gray-700 text-gray-400'}`}>
-                        {order.status}
-                      </span>
-                      <p className="text-gray-600 text-xs mt-1">{expandedId === order.id ? '▲' : '▼'}</p>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontFamily: A.sans, fontSize: '13px', color: A.text, fontWeight: 400, letterSpacing: '0.02em' }}>{order.order_number}</p>
+                            <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                              {order.full_name} · {order.city}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <p style={{ fontFamily: A.serif, fontSize: '16px', color: A.text, fontWeight: 400 }}>Rs. {order.total_amount}</p>
+                            <span style={{ fontFamily: A.sans, fontSize: '10px', color: meta.color, background: meta.bg, padding: '2px 8px', textTransform: 'capitalize', letterSpacing: '0.06em', fontWeight: 400 }}>
+                              {meta.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontFamily: A.sans, fontSize: '10px', color: payMeta.color, background: payMeta.bg, padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 400 }}>
+                              {order.payment_status}
+                            </span>
+                            {order.payment_method && (
+                              <span style={{ fontFamily: A.sans, fontSize: '10px', color: A.textDim, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{order.payment_method}</span>
+                            )}
+                            <span style={{ fontFamily: A.sans, fontSize: '10.5px', color: A.textDim, fontWeight: 300 }}>
+                              {order.items_count} item{order.items_count !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontFamily: A.sans, fontSize: '10.5px', color: A.textDim, fontWeight: 300 }}>
+                              {new Date(order.created_at).toLocaleDateString('en-NP', { month: 'short', day: 'numeric' })}
+                            </span>
+                            <ChevronDown size={12} strokeWidth={1.5} style={{ color: A.textDim, transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Payment badge + date */}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${paymentColors[order.payment_status] || 'bg-gray-700 text-gray-400'}`}>
-                      💳 {order.payment_status} · {order.payment_method?.toUpperCase()}
-                    </span>
-                    <span className="text-gray-600 text-xs">
-                      {new Date(order.created_at).toLocaleDateString('en-NP', { month:'short', day:'numeric' })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Expanded panel */}
-                {expandedId === order.id && (
-                  <div className="border-t border-gray-800 p-4 space-y-3">
-                    {/* Contact info */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-gray-800 rounded-lg p-2.5">
-                        <p className="text-gray-500 mb-0.5">📞 Phone</p>
-                        <p className="text-white font-medium">{order.phone}</p>
-                      </div>
-                      <div className="bg-gray-800 rounded-lg p-2.5">
-                        <p className="text-gray-500 mb-0.5">📧 Email</p>
-                        <p className="text-white font-medium truncate">{order.email}</p>
-                      </div>
-                    </div>
-
-                    {/* Status update */}
-                    <div>
-                      <p className="text-gray-500 text-xs font-semibold mb-2 uppercase tracking-wide">Update Status</p>
-                      {/* Mobile: 2 rows of 3, Desktop: 1 row */}
-                      <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-1.5">
-                        {validStatuses.map(s => (
-                          <button key={s} onClick={() => updateStatus(order.id, s)}
-                            disabled={updating === order.id || order.status === s}
-                            className={`py-2 px-2 rounded-lg text-xs font-medium capitalize transition-all disabled:opacity-40 ${
-                              order.status === s
-                                ? `${statusColors[s]} cursor-default`
-                                : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 hover:border-gray-500'
-                            }`}>
-                            {updating === order.id ? '...' : `${statusEmoji[s]} ${s}`}
-                          </button>
+                  {/* Expanded */}
+                  {isOpen && (
+                    <div style={{ borderTop: `1px solid ${A.border}`, padding: '16px 18px' }}>
+                      {/* Contact */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px', marginBottom: '16px' }}>
+                        {[{ label: 'Phone', value: order.phone }, { label: 'Email', value: order.email }, { label: 'Address', value: `${order.address_line1}, ${order.city}` }].filter(i => i.value).map(item => (
+                          <div key={item.label} style={{ background: A.bg, border: `1px solid ${A.border}`, padding: '10px 14px' }}>
+                            <p style={{ fontFamily: A.sans, fontSize: '9.5px', color: A.textDim, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '4px', fontWeight: 400 }}>{item.label}</p>
+                            <p style={{ fontFamily: A.sans, fontSize: '12px', color: A.text, fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</p>
+                          </div>
                         ))}
                       </div>
+
+                      {/* Status update */}
+                      <p style={{ fontFamily: A.sans, fontSize: '10px', color: A.textDim, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: '8px', fontWeight: 400 }}>Update Status</p>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {VALID_STATUSES.map(s => {
+                          const sm = STATUS_META[s]
+                          const isCurrent = order.status === s
+                          return (
+                            <button key={s} onClick={() => updateStatus(order.id, s)}
+                              disabled={updating === order.id || isCurrent}
+                              style={{
+                                padding: '6px 14px',
+                                border: `1px solid ${isCurrent ? sm.color : A.border2}`,
+                                background: isCurrent ? sm.bg : 'transparent',
+                                color: isCurrent ? sm.color : A.textMid,
+                                fontFamily: A.sans, fontSize: '10.5px',
+                                textTransform: 'capitalize', letterSpacing: '0.06em',
+                                cursor: isCurrent ? 'default' : updating === order.id ? 'wait' : 'pointer',
+                                transition: 'all 0.15s', fontWeight: 400,
+                                opacity: updating === order.id && !isCurrent ? 0.5 : 1,
+                              }}
+                              onMouseEnter={e => { if (!isCurrent && updating !== order.id) { e.currentTarget.style.borderColor = sm.color; e.currentTarget.style.color = sm.color } }}
+                              onMouseLeave={e => { if (!isCurrent && updating !== order.id) { e.currentTarget.style.borderColor = A.border2; e.currentTarget.style.color = A.textMid } }}
+                            >
+                              {updating === order.id ? '...' : sm.label}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
