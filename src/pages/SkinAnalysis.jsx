@@ -1,7 +1,7 @@
 // src/pages/SkinAnalysis.jsx — Mobile Responsive + SEO
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getPersonalizedTips } from '../utils/skinTips'
+import { getPersonalizedTips, getProductsForStep } from '../utils/skinTips'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import api from '../api/axios'
@@ -475,17 +475,68 @@ export default function SkinAnalysis() {
                   <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Personalized Skincare Tips</h3>
                   <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
                 </div>
-                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {getPersonalizedTips(result.analysis.skin_type, result.analysis.age, result.analysis.gender).map((item, i) => (
-                    <div key={i} style={{ border: '1px solid #EEE7DF', background: '#FDFAF7', padding: '16px' }}>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(150,56,56,0.05)', padding: '8px 10px', borderLeft: '2px solid #963838' }}>
-                        <AlertCircle size={11} strokeWidth={1.5} style={{ color: '#963838', flexShrink: 0, marginTop: '2px' }} />
-                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
+                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {getPersonalizedTips(result.analysis.skin_type, result.analysis.age, result.analysis.gender).map((item, i) => {
+                    // ── Level 3: Find products matching this step's ingredients ──
+                    const allProducts = result.recommendations?.products || []
+                    const stepProducts = getProductsForStep(item.ingredients || [], allProducts)
+
+                    return (
+                      <div key={i} style={{ border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
+
+                        {/* Step header */}
+                        <div style={{ padding: '16px 16px 0 16px' }}>
+                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
+                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(150,56,56,0.05)', padding: '8px 10px', borderLeft: '2px solid #963838', marginBottom: stepProducts.length > 0 ? '14px' : '16px' }}>
+                            <AlertCircle size={11} strokeWidth={1.5} style={{ color: '#963838', flexShrink: 0, marginTop: '2px' }} />
+                            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
+                          </div>
+                        </div>
+
+                        {/* ── Matched products for this step ── */}
+                        {stepProducts.length > 0 && (
+                          <div style={{ borderTop: '1px solid #EEE7DF', padding: '12px 16px', background: '#FFFFFF' }}>
+                            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.16em', color: cfg.accent, fontWeight: 500, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <ShoppingBag size={10} strokeWidth={1.5} /> Matched products for this step
+                            </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {stepProducts.map((rec, j) => (
+                                <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
+                                  {/* Product image */}
+                                  <div style={{ width: '44px', height: '44px', flexShrink: 0, background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    {rec.product.image
+                                      ? <img src={getProductImageUrl(rec.product.image)} alt={rec.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      : <Package size={16} strokeWidth={1} style={{ color: '#D4C4B0' }} />
+                                    }
+                                  </div>
+                                  {/* Product info */}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 400 }}>{rec.product.brand}</p>
+                                    <a href={`/products/${rec.product.slug}`} style={{ textDecoration: 'none' }}>
+                                      <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '12px', color: '#16100C', fontWeight: 400, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.product.name}</p>
+                                    </a>
+                                    {/* Why matched — ingredient reasoning */}
+                                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#7B6458', fontStyle: 'italic', fontWeight: 300, marginTop: '2px', lineHeight: 1.4 }}>
+                                      {rec.reasoning?.split('.')[0]}.
+                                    </p>
+                                  </div>
+                                  {/* Price + Cart */}
+                                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '13px', color: '#16100C', fontWeight: 400 }}>Rs. {rec.product.discounted_price}</p>
+                                    <button onClick={() => addToCart(rec.product.id)} disabled={addingId === rec.product.id}
+                                      style={{ marginTop: '4px', background: cfg.accent, color: '#FFFFFF', border: 'none', padding: '4px 10px', fontFamily: "'DM Sans',sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', opacity: addingId === rec.product.id ? 0.6 : 1 }}>
+                                      {addingId === rec.product.id ? '...' : 'Add'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
