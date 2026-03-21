@@ -16,7 +16,7 @@ const AdminToast = ({ message }) => message.text ? (
   </div>
 ) : null
 
-const inp     = { width: '100%', background: '#1A1A1A', border: `1px solid ${A.border2}`, color: A.text, padding: '10px 14px', fontFamily: A.sans, fontSize: '12.5px', outline: 'none', transition: 'border-color 0.15s', fontWeight: 300, boxSizing: 'border-box' }
+const inp      = { width: '100%', background: '#1A1A1A', border: `1px solid ${A.border2}`, color: A.text, padding: '10px 14px', fontFamily: A.sans, fontSize: '12.5px', outline: 'none', transition: 'border-color 0.15s', fontWeight: 300, boxSizing: 'border-box' }
 const inpFocus = (e) => e.target.style.borderColor = A.accent
 const inpBlur  = (e) => e.target.style.borderColor = A.border2
 
@@ -80,8 +80,8 @@ const ImageUpload = ({ field, label, preview, required, error, onImage }) => (
 
 export default function AdminProductForm() {
   const { slug } = useParams()
-  const navigate = useNavigate()
-  const isEdit   = Boolean(slug)
+  const navigate  = useNavigate()
+  const isEdit    = Boolean(slug)
 
   const [categories, setCategories] = useState([])
   const [loading,    setLoading]    = useState(false)
@@ -90,32 +90,74 @@ export default function AdminProductForm() {
   const [message,    setMessage]    = useState({ text: '', type: '' })
   const [previews,   setPreviews]   = useState({ image: null, image_2: null, image_3: null })
 
+  // ── Separate image state from text fields ──────────────
+  // This prevents the "empty file" Cloudinary error
+  const [images, setImages] = useState({ image: null, image_2: null, image_3: null })
+
   const [form, setForm] = useState({
     name: '', brand: '', category: '', description: '', ingredients: '',
     price: '', discount_percent: '0', suitable_skin_type: 'all',
     skin_concern: 'general', min_age: '13', max_age: '65', gender: 'unisex',
     stock: '0', low_stock_threshold: '10',
     is_available: true, is_featured: false,
-    image: null, image_2: null, image_3: null,
   })
 
-  useEffect(() => { api.get('/products/categories/').then(res => setCategories(res.data.results || res.data || [])) }, [])
+  useEffect(() => {
+    api.get('/products/categories/')
+      .then(res => setCategories(res.data.results || res.data || []))
+  }, [])
 
   useEffect(() => {
     if (!isEdit) return
-    api.get(`/products/${slug}/`).then(res => {
-      const p = res.data.product || res.data
-      setForm({ name: p.name||'', brand: p.brand||'', category: p.category?.id||'', description: p.description||'', ingredients: p.ingredients||'', price: p.price||'', discount_percent: p.discount_percent||'0', suitable_skin_type: p.suitable_skin_type||'all', skin_concern: p.skin_concern||'general', min_age: p.min_age||'13', max_age: p.max_age||'65', gender: p.gender||'unisex', stock: p.stock||'0', low_stock_threshold: p.low_stock_threshold||'10', is_available: p.is_available??true, is_featured: p.is_featured??false, image: null, image_2: null, image_3: null })
-      if (p.image)   setPreviews(pr => ({ ...pr, image:   getProductImageUrl(p.image)   }))
-      if (p.image_2) setPreviews(pr => ({ ...pr, image_2: getProductImageUrl(p.image_2) }))
-      if (p.image_3) setPreviews(pr => ({ ...pr, image_3: getProductImageUrl(p.image_3) }))
-    }).catch(() => showMsg('Failed to load product.', 'error'))
-    .finally(() => setFetching(false))
+    api.get(`/products/${slug}/`)
+      .then(res => {
+        const p = res.data.product || res.data
+        setForm({
+          name:               p.name                || '',
+          brand:              p.brand               || '',
+          category:           p.category?.id        || '',
+          description:        p.description         || '',
+          ingredients:        p.ingredients         || '',
+          price:              p.price               || '',
+          discount_percent:   p.discount_percent    || '0',
+          suitable_skin_type: p.suitable_skin_type  || 'all',
+          skin_concern:       p.skin_concern        || 'general',
+          min_age:            p.min_age             || '13',
+          max_age:            p.max_age             || '65',
+          gender:             p.gender              || 'unisex',
+          stock:              p.stock               || '0',
+          low_stock_threshold:p.low_stock_threshold || '10',
+          is_available:       p.is_available        ?? true,
+          is_featured:        p.is_featured         ?? false,
+        })
+        if (p.image)   setPreviews(pr => ({ ...pr, image:   getProductImageUrl(p.image)   }))
+        if (p.image_2) setPreviews(pr => ({ ...pr, image_2: getProductImageUrl(p.image_2) }))
+        if (p.image_3) setPreviews(pr => ({ ...pr, image_3: getProductImageUrl(p.image_3) }))
+      })
+      .catch(() => showMsg('Failed to load product.', 'error'))
+      .finally(() => setFetching(false))
   }, [slug])
 
-  const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000) }
-  const handleChange = e => { const { name, value, type, checked } = e.target; setForm(p => ({ ...p, [name]: type === 'checkbox' ? checked : value })); if (errors[name]) setErrors(p => ({ ...p, [name]: '' })) }
-  const handleImage  = (e, field) => { const file = e.target.files[0]; if (!file) return; setForm(p => ({ ...p, [field]: file })); setPreviews(p => ({ ...p, [field]: URL.createObjectURL(file) })) }
+  const showMsg = (text, type) => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
+  }
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setForm(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }))
+    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }))
+  }
+
+  // ── Image handler — stores File separately from form ──
+  const handleImage = (e, field) => {
+    const file = e.target.files[0]
+    if (!file) return
+    // Only store actual File objects — never null/undefined
+    setImages(p  => ({ ...p, [field]: file }))
+    setPreviews(p => ({ ...p, [field]: URL.createObjectURL(file) }))
+    if (errors[field]) setErrors(p => ({ ...p, [field]: '' }))
+  }
 
   const validate = () => {
     const errs = {}
@@ -123,24 +165,65 @@ export default function AdminProductForm() {
     if (!form.brand.trim()) errs.brand    = 'Required'
     if (!form.category)     errs.category = 'Required'
     if (!form.price)        errs.price    = 'Required'
-    if (!isEdit && !form.image) errs.image = 'Main image required'
+    if (!isEdit && !images.image) errs.image = 'Main image required'
     return errs
   }
 
   const handleSubmit = async () => {
-    const errs = validate(); if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    const errs = validate()
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+
     setLoading(true)
     const fd = new FormData()
-    Object.entries(form).forEach(([k, v]) => { if (v === null || v === undefined) return; if (['image','image_2','image_3'].includes(k) && !v) return; fd.append(k, v) })
+
+    // ── Append text/number fields ──────────────────────────
+    const textFields = [
+      'name', 'brand', 'category', 'description', 'ingredients',
+      'price', 'discount_percent', 'suitable_skin_type', 'skin_concern',
+      'min_age', 'max_age', 'gender', 'stock', 'low_stock_threshold',
+    ]
+    textFields.forEach(key => {
+      const val = form[key]
+      if (val !== null && val !== undefined && val !== '') {
+        fd.append(key, val)
+      }
+    })
+
+    // ── Append boolean fields as strings ──────────────────
+    // Django expects 'true'/'false' strings for boolean fields
+    fd.append('is_available', form.is_available ? 'true' : 'false')
+    fd.append('is_featured',  form.is_featured  ? 'true' : 'false')
+
+    // ── Append images ONLY if they are actual File objects ─
+    // This prevents the "Empty file" Cloudinary error
+    if (images.image   instanceof File) fd.append('image',   images.image)
+    if (images.image_2 instanceof File) fd.append('image_2', images.image_2)
+    if (images.image_3 instanceof File) fd.append('image_3', images.image_3)
+
     try {
-      if (isEdit) { await api.patch(`/products/${slug}/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Product updated!', 'success') }
-      else        { await api.post('/products/', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); showMsg('Product created!', 'success') }
+      if (isEdit) {
+        await api.patch(`/products/${slug}/`, fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        showMsg('Product updated successfully!', 'success')
+      } else {
+        await api.post('/products/', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        showMsg('Product created successfully!', 'success')
+      }
       setTimeout(() => navigate('/admin/products'), 1500)
     } catch (err) {
       const data = err.response?.data
-      if (data && typeof data === 'object') { setErrors(data); showMsg('Please fix the errors.', 'error') }
-      else showMsg('Something went wrong.', 'error')
-    } finally { setLoading(false) }
+      if (data && typeof data === 'object') {
+        setErrors(data)
+        showMsg('Please fix the errors below.', 'error')
+      } else {
+        showMsg('Something went wrong. Please try again.', 'error')
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (fetching) return (
@@ -158,7 +241,8 @@ export default function AdminProductForm() {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <button onClick={() => navigate('/admin/products')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: A.sans, fontSize: '12px', color: A.textMid, padding: 0, transition: 'color 0.15s' }}
+          <button onClick={() => navigate('/admin/products')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: A.sans, fontSize: '12px', color: A.textMid, padding: 0, transition: 'color 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.color = A.text}
             onMouseLeave={e => e.currentTarget.style.color = A.textMid}
           >
@@ -172,7 +256,7 @@ export default function AdminProductForm() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '16px', alignItems: 'flex-start' }} className="admin-form-grid">
 
-          {/* Left column */}
+          {/* ── Left column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
             <SectionCard title="Basic Information">
@@ -196,7 +280,8 @@ export default function AdminProductForm() {
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
-                  <Link to="/admin/categories" style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '10px 12px', border: `1px solid ${A.border2}`, background: 'transparent', color: A.textMid, textDecoration: 'none', fontFamily: A.sans, fontSize: '11px', transition: 'all 0.15s', flexShrink: 0, whiteSpace: 'nowrap' }}
+                  <Link to="/admin/categories"
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '10px 12px', border: `1px solid ${A.border2}`, background: 'transparent', color: A.textMid, textDecoration: 'none', fontFamily: A.sans, fontSize: '11px', transition: 'all 0.15s', flexShrink: 0, whiteSpace: 'nowrap' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = A.accent; e.currentTarget.style.color = A.accent }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = A.border2; e.currentTarget.style.color = A.textMid }}
                   >
@@ -258,7 +343,7 @@ export default function AdminProductForm() {
             </SectionCard>
           </div>
 
-          {/* Right column */}
+          {/* ── Right column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
             <SectionCard title="Product Images">
@@ -268,8 +353,8 @@ export default function AdminProductForm() {
             </SectionCard>
 
             <SectionCard title="Settings">
-              <Toggle name="is_available" label="Available for Sale" desc="Show in store" value={form.is_available} onChange={handleChange} />
-              <Toggle name="is_featured"  label="Featured Product"   desc="Show on homepage" value={form.is_featured} onChange={handleChange} />
+              <Toggle name="is_available" label="Available for Sale" desc="Show in store"    value={form.is_available} onChange={handleChange} />
+              <Toggle name="is_featured"  label="Featured Product"   desc="Show on homepage" value={form.is_featured}  onChange={handleChange} />
             </SectionCard>
 
             <button onClick={handleSubmit} disabled={loading} style={{
@@ -290,13 +375,9 @@ export default function AdminProductForm() {
       </div>
 
       <style>{`
-        .admin-form-grid {
-          grid-template-columns: 1fr 300px !important;
-        }
+        .admin-form-grid { grid-template-columns: 1fr 300px !important; }
         @media (max-width: 900px) {
-          .admin-form-grid {
-            grid-template-columns: 1fr !important;
-          }
+          .admin-form-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </AdminLayout>
