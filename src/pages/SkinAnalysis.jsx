@@ -1,6 +1,7 @@
 // src/pages/SkinAnalysis.jsx — Mobile Responsive + SEO
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getPersonalizedTips } from '../utils/skinTips'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import api from '../api/axios'
@@ -301,7 +302,7 @@ export default function SkinAnalysis() {
                   Upload a face photo — our AI analyzes your skin in seconds and recommends products that genuinely work for your skin type.
                 </p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['Photo not stored','Results in seconds','Personalized picks'].map((f,i) => (
+                  {['Photo not stored after analysis','Results in seconds','Personalized picks'].map((f,i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', border: '1px solid rgba(184,137,90,0.35)', background: 'rgba(255,255,255,0.5)', fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', color: '#7B6458', fontWeight: 300 }}>
                       <CheckCircle size={11} strokeWidth={1.5} style={{ color: '#B8895A' }} /> {f}
                     </div>
@@ -472,17 +473,19 @@ export default function SkinAnalysis() {
               <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
                 <div style={{ padding: '18px 24px', borderBottom: '1px solid #EEE7DF' }}>
                   <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Personalized Skincare Tips</h3>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Curated for your {cfg.label.toLowerCase()}</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
                 </div>
-                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)' }}>
-                  <div className="skin-tips-grid">
-                    {cfg.tips.map((tip,i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 14px', border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
-                        <CheckCircle size={13} strokeWidth={1.5} style={{ color: cfg.accent, flexShrink: 0, marginTop: '1px' }} />
-                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', lineHeight: 1.6, fontWeight: 300 }}>{tip}</p>
+                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {getPersonalizedTips(result.analysis.skin_type, result.analysis.age, result.analysis.gender).map((item, i) => (
+                    <div key={i} style={{ border: '1px solid #EEE7DF', background: '#FDFAF7', padding: '16px' }}>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(150,56,56,0.05)', padding: '8px 10px', borderLeft: '2px solid #963838' }}>
+                        <AlertCircle size={11} strokeWidth={1.5} style={{ color: '#963838', flexShrink: 0, marginTop: '2px' }} />
+                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
