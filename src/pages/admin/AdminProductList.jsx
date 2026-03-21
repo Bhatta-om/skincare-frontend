@@ -14,6 +14,7 @@ const AdminToast = ({ message }) => message.text ? (
 
 export default function AdminProductList() {
   const [products, setProducts] = useState([])
+  const [total,    setTotal]    = useState(0)
   const [loading,  setLoading]  = useState(true)
   const [search,   setSearch]   = useState('')
   const [deleting, setDeleting] = useState(null)
@@ -21,16 +22,26 @@ export default function AdminProductList() {
 
   const fetchProducts = () => {
     setLoading(true)
-    const params = search ? `?search=${search}` : ''
-    api.get(`/products/${params}`)
-      .then(res => setProducts(res.data.results || res.data.products || []))
+    // ✅ page_size=200 ensures all products load for admin
+    // ✅ admin=true tells backend to return ALL products including unavailable
+    const params = new URLSearchParams({ page_size: 200, admin: 'true' })
+    if (search) params.append('search', search)
+
+    api.get(`/products/?${params}`)
+      .then(res => {
+        setProducts(res.data.results || res.data.products || [])
+        setTotal(res.data.count || res.data.total || 0)
+      })
       .catch(() => showMsg('Failed to load products.', 'error'))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { fetchProducts() }, [search])
 
-  const showMsg = (text, type) => { setMessage({ text, type }); setTimeout(() => setMessage({ text: '', type: '' }), 3000) }
+  const showMsg = (text, type) => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
+  }
 
   const deleteProduct = async (slug, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
@@ -79,7 +90,10 @@ export default function AdminProductList() {
           </Link>
         </div>
 
-        <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300 }}>{products.length} products</p>
+        {/* Count */}
+        <p style={{ fontFamily: A.sans, fontSize: '11px', color: A.textDim, fontWeight: 300 }}>
+          {loading ? 'Loading...' : `${total} total products`}
+        </p>
 
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
@@ -160,6 +174,9 @@ export default function AdminProductList() {
                         <div style={{ display: 'flex', gap: '6px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                           <span style={{ fontFamily: A.serif, fontSize: '13px', color: A.accent }}>Rs. {product.discounted_price}</span>
                           <span style={{ fontFamily: A.sans, fontSize: '10px', color: ss.color, background: ss.bg, padding: '2px 7px', letterSpacing: '0.04em' }}>{product.stock_status}</span>
+                          <span style={{ fontFamily: A.sans, fontSize: '10px', color: product.is_available ? A.success : A.textDim, background: product.is_available ? 'rgba(74,122,87,0.12)' : A.bg, padding: '2px 7px' }}>
+                            {product.is_available ? 'Live' : 'Off'}
+                          </span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
@@ -181,13 +198,13 @@ export default function AdminProductList() {
       </div>
 
       <style>{`
-        .admin-prod-header  { display: grid  !important; }
-        .admin-prod-desktop { display: grid  !important; }
-        .admin-prod-mobile  { display: none  !important; }
+        .admin-prod-header  { display: grid !important; }
+        .admin-prod-desktop { display: grid !important; }
+        .admin-prod-mobile  { display: none !important; }
         @media (max-width: 768px) {
-          .admin-prod-header  { display: none  !important; }
-          .admin-prod-desktop { display: none  !important; }
-          .admin-prod-mobile  { display: flex  !important; }
+          .admin-prod-header  { display: none !important; }
+          .admin-prod-desktop { display: none !important; }
+          .admin-prod-mobile  { display: flex !important; }
         }
       `}</style>
     </AdminLayout>
