@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import {
   User, ShoppingBag, DollarSign, Lock, Eye, EyeOff,
   Shield, CheckCircle, AlertCircle, LogOut,
-  Edit3,
+  Edit3, FlaskConical,
 } from 'lucide-react'
 
 const PROFILE_CSS = `
@@ -53,7 +53,6 @@ const getStrength = (pw) => {
   return { ...meta[s - 1], score: s }
 }
 
-// ── Outside Profile to prevent re-mount on every keystroke ──
 const PasswordField = ({ name, label, value, onChange, show, onToggle }) => (
   <div>
     <label className="input-label">{label}</label>
@@ -67,16 +66,7 @@ const PasswordField = ({ name, label, value, onChange, show, onToggle }) => (
         className="input-luxury"
         style={{ paddingRight: '44px' }}
       />
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          position: 'absolute', right: '14px', top: '50%',
-          transform: 'translateY(-50%)', background: 'none',
-          border: 'none', cursor: 'pointer', color: '#AA9688',
-          display: 'flex', padding: 0,
-        }}
-      >
+      <button type="button" onClick={onToggle} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#AA9688', display: 'flex', padding: 0 }}>
         {show ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
       </button>
     </div>
@@ -143,8 +133,8 @@ export default function Profile() {
     setPwLoading(true)
     try {
       await api.post('/users/change-password/', {
-        old_password: pwForm.old_password,
-        new_password: pwForm.new_password,
+        old_password:         pwForm.old_password,
+        new_password:         pwForm.new_password,
         confirm_new_password: pwForm.confirm_password,
       })
       toast.success('Password changed. Please login again.', { duration: 4000 })
@@ -175,108 +165,32 @@ export default function Profile() {
 
       <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
 
-        {/* ── Hero Header — warm beige ── */}
-        <div style={{
-          background: 'rgb(228, 189, 120)',
-          borderBottom: '1px solid #E6DDD3',
-          padding: 'clamp(32px,5vw,56px) 0 40px',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          {/* Decorative circle */}
+        {/* ── Hero Header ── */}
+        <div style={{ background: 'rgb(228, 189, 120)', borderBottom: '1px solid #E6DDD3', padding: 'clamp(32px,5vw,56px) 0 40px', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.15)', pointerEvents: 'none' }} />
-          {/* Dot pattern */}
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(184,137,90,0.07) 1px, transparent 1px)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
 
           <div className="container-luxury" style={{ position: 'relative', zIndex: 1 }}>
             <div className="profile-header-row">
-
-              {/* Initials avatar */}
-              <div style={{
-                width: 'clamp(52px,8vw,72px)',
-                height: 'clamp(52px,8vw,72px)',
-                border: '1.5px solid #B8895A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontFamily: "'Playfair Display',serif",
-                fontSize: 'clamp(18px,3vw,26px)',
-                color: '#B8895A',
-                background: '#FFFFFF',
-                flexShrink: 0,
-                boxShadow: '0 4px 20px rgba(184,137,90,0.12)',
-              }}>
+              <div style={{ width: 'clamp(52px,8vw,72px)', height: 'clamp(52px,8vw,72px)', border: '1.5px solid #B8895A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Playfair Display',serif", fontSize: 'clamp(18px,3vw,26px)', color: '#B8895A', background: '#FFFFFF', flexShrink: 0, boxShadow: '0 4px 20px rgba(184,137,90,0.12)' }}>
                 {initials}
               </div>
-
-              {/* User info */}
               <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{
-                  fontFamily: "'DM Sans',sans-serif",
-                  fontSize: '10px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.2em',
-                  color: '#B8895A',
-                  marginBottom: '5px',
-                  fontWeight: 400,
-                }}>
-                  My Account
-                </p>
-                <h1 style={{
-                  fontFamily: "'Playfair Display',serif",
-                  fontSize: 'clamp(20px,3vw,30px)',
-                  color: '#16100C',
-                  fontWeight: 400,
-                  lineHeight: 1.1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  marginBottom: '5px',
-                }}>
+                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#B8895A', marginBottom: '5px', fontWeight: 400 }}>My Account</p>
+                <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(20px,3vw,30px)', color: '#16100C', fontWeight: 400, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '5px' }}>
                   {user?.first_name} {user?.last_name}
                 </h1>
-                <p style={{
-                  fontFamily: "'DM Sans',sans-serif",
-                  fontSize: '12.5px',
-                  color: '#7B6458',
-                  fontWeight: 300,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
+                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#7B6458', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.email}
                   {user?.is_staff && (
-                    <span style={{
-                      marginLeft: '10px',
-                      background: 'rgba(184,137,90,0.15)',
-                      color: '#B8895A',
-                      fontSize: '9px',
-                      padding: '2px 10px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.12em',
-                      border: '1px solid rgba(184,137,90,0.3)',
-                    }}>
-                      Admin
-                    </span>
+                    <span style={{ marginLeft: '10px', background: 'rgba(184,137,90,0.15)', color: '#B8895A', fontSize: '9px', padding: '2px 10px', textTransform: 'uppercase', letterSpacing: '0.12em', border: '1px solid rgba(184,137,90,0.3)' }}>Admin</span>
                   )}
                 </p>
               </div>
-
-              {/* Verified badge */}
               {user?.is_verified && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 14px',
-                  border: '1px solid rgba(74,122,87,0.3)',
-                  background: 'rgba(74,122,87,0.06)',
-                  flexShrink: 0,
-                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', border: '1px solid rgba(74,122,87,0.3)', background: 'rgba(74,122,87,0.06)', flexShrink: 0 }}>
                   <CheckCircle size={12} strokeWidth={1.5} style={{ color: '#4A7A57' }} />
-                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#4A7A57', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400 }}>
-                    Verified
-                  </span>
+                  <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#4A7A57', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 400 }}>Verified</span>
                 </div>
               )}
             </div>
@@ -285,7 +199,7 @@ export default function Profile() {
 
         <div className="container-luxury" style={{ padding: 'clamp(24px,4vw,40px) 32px clamp(48px,6vw,80px)' }}>
 
-          {/* Stats row */}
+          {/* Stats */}
           {stats && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#E6DDD3', marginBottom: '28px' }}>
               {[
@@ -306,91 +220,50 @@ export default function Profile() {
 
             {/* ── Left: Forms ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-              {/* Edit Profile */}
               <SectionCard title="Edit Profile" icon={<Edit3 size={17} strokeWidth={1.5} />}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="profile-name-grid">
                     {[{ name: 'first_name', label: 'First Name' }, { name: 'last_name', label: 'Last Name' }].map(f => (
                       <div key={f.name}>
                         <label className="input-label">{f.label}</label>
-                        <input type="text" name={f.name} value={form[f.name]} onChange={handleChange}
-                          className="input-luxury" style={{ marginTop: '8px' }} />
+                        <input type="text" name={f.name} value={form[f.name]} onChange={handleChange} className="input-luxury" style={{ marginTop: '8px' }} />
                       </div>
                     ))}
                   </div>
                   <div>
                     <label className="input-label">Email</label>
-                    <input type="email" value={user?.email || ''} disabled className="input-luxury"
-                      style={{ marginTop: '8px', background: '#FAF8F5', color: '#AA9688', cursor: 'not-allowed' }} />
+                    <input type="email" value={user?.email || ''} disabled className="input-luxury" style={{ marginTop: '8px', background: '#FAF8F5', color: '#AA9688', cursor: 'not-allowed' }} />
                     <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', marginTop: '4px', fontWeight: 300 }}>Email cannot be changed</p>
                   </div>
                   <div>
                     <label className="input-label">Phone Number</label>
-                    <input type="text" name="phone" value={form.phone} onChange={handleChange}
-                      placeholder="98XXXXXXXX" className="input-luxury" style={{ marginTop: '8px' }} />
+                    <input type="text" name="phone" value={form.phone} onChange={handleChange} placeholder="98XXXXXXXX" className="input-luxury" style={{ marginTop: '8px' }} />
                   </div>
-                  <div>
-                    <button type="submit" disabled={loading} className="btn-primary" style={{ gap: '8px', opacity: loading ? 0.7 : 1 }}>
-                      {loading ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
+                  <button type="submit" disabled={loading} className="btn-primary" style={{ gap: '8px', opacity: loading ? 0.7 : 1 }}>
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
                 </form>
               </SectionCard>
 
-              {/* Change Password */}
-              <SectionCard
-                title="Change Password"
-                icon={<Lock size={17} strokeWidth={1.5} />}
-                subtitle="You will be logged out after changing your password"
-              >
+              <SectionCard title="Change Password" icon={<Lock size={17} strokeWidth={1.5} />} subtitle="You will be logged out after changing your password">
                 <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-                  <PasswordField
-                    name="old_password"
-                    label="Current Password"
-                    value={pwForm.old_password}
-                    onChange={handlePwChange}
-                    show={showPw.old}
-                    onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))}
-                  />
-
-                  <PasswordField
-                    name="new_password"
-                    label="New Password"
-                    value={pwForm.new_password}
-                    onChange={handlePwChange}
-                    show={showPw.new}
-                    onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))}
-                  />
-
+                  <PasswordField name="old_password" label="Current Password" value={pwForm.old_password} onChange={handlePwChange} show={showPw.old} onToggle={() => setShowPw(s => ({ ...s, old: !s.old }))} />
+                  <PasswordField name="new_password" label="New Password" value={pwForm.new_password} onChange={handlePwChange} show={showPw.new} onToggle={() => setShowPw(s => ({ ...s, new: !s.new }))} />
                   {isSameAsCurrent && (
                     <div className="alert-error">
                       <AlertCircle size={12} strokeWidth={1.5} style={{ flexShrink: 0 }} />
                       New password cannot be same as current
                     </div>
                   )}
-
                   {strength && pwForm.new_password && !isSameAsCurrent && (
                     <div>
                       <div style={{ height: '3px', background: '#E6DDD3', marginBottom: '6px' }}>
                         <div style={{ height: '100%', width: strength.width, background: strength.color, transition: 'width 0.3s ease, background 0.3s ease' }} />
                       </div>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: strength.color, fontWeight: 400 }}>
-                        {strength.label} password
-                      </p>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: strength.color, fontWeight: 400 }}>{strength.label} password</p>
                     </div>
                   )}
-
-                  <PasswordField
-                    name="confirm_password"
-                    label="Confirm Password"
-                    value={pwForm.confirm_password}
-                    onChange={handlePwChange}
-                    show={showPw.confirm}
-                    onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))}
-                  />
-
+                  <PasswordField name="confirm_password" label="Confirm Password" value={pwForm.confirm_password} onChange={handlePwChange} show={showPw.confirm} onToggle={() => setShowPw(s => ({ ...s, confirm: !s.confirm }))} />
                   {pwForm.confirm_password && (
                     <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: pwForm.new_password === pwForm.confirm_password ? '#4A7A57' : '#963838', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 300 }}>
                       {pwForm.new_password === pwForm.confirm_password
@@ -398,13 +271,7 @@ export default function Profile() {
                         : <><AlertCircle  size={11} strokeWidth={1.5} /> Passwords do not match</>}
                     </p>
                   )}
-
-                  <button
-                    type="submit"
-                    disabled={pwLoading || !pwForm.old_password || !pwForm.new_password || !pwForm.confirm_password || isSameAsCurrent || pwForm.new_password !== pwForm.confirm_password}
-                    className="btn-primary"
-                    style={{ gap: '8px', opacity: pwLoading ? 0.7 : 1 }}
-                  >
+                  <button type="submit" disabled={pwLoading || !pwForm.old_password || !pwForm.new_password || !pwForm.confirm_password || isSameAsCurrent || pwForm.new_password !== pwForm.confirm_password} className="btn-primary" style={{ gap: '8px', opacity: pwLoading ? 0.7 : 1 }}>
                     <Lock size={14} strokeWidth={1.5} />
                     {pwLoading ? 'Changing...' : 'Change Password'}
                   </button>
@@ -431,26 +298,22 @@ export default function Profile() {
                 </div>
               </SectionCard>
 
-              {/* Quick links */}
+              {/* Quick Links — ✅ My Skin Analysis added */}
               <SectionCard title="Quick Links" icon={<User size={17} strokeWidth={1.5} />}>
                 <div>
                   {[
-                    { href: '/orders',   label: 'My Orders'   },
-                    { href: '/wishlist', label: 'My Wishlist' },
-                    { href: '/products', label: 'Shop Now'    },
+                    { href: '/my-analysis', label: 'My Skin Analysis', icon: <FlaskConical size={13} strokeWidth={1.5} style={{ color: '#B8895A' }} /> },
+                    { href: '/orders',      label: 'My Orders',        icon: null },
+                    { href: '/wishlist',    label: 'My Wishlist',      icon: null },
+                    { href: '/products',    label: 'Shop Now',         icon: null },
                   ].map((link, i, arr) => (
-                    <a key={i} href={link.href} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 0',
-                      borderBottom: i < arr.length - 1 ? '1px solid #EEE7DF' : 'none',
-                      fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px',
-                      color: '#3A2820', textDecoration: 'none', fontWeight: 400,
-                      transition: 'color 0.15s',
-                    }}
+                    <a key={i} href={link.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < arr.length - 1 ? '1px solid #EEE7DF' : 'none', fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: i === 0 ? '#B8895A' : '#3A2820', textDecoration: 'none', fontWeight: i === 0 ? 400 : 300, transition: 'color 0.15s', gap: '8px' }}
                       onMouseEnter={e => e.currentTarget.style.color = '#B8895A'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#3A2820'}
+                      onMouseLeave={e => e.currentTarget.style.color = i === 0 ? '#B8895A' : '#3A2820'}
                     >
-                      {link.label}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {link.icon} {link.label}
+                      </span>
                       <span style={{ color: '#D4C4B0', fontSize: '16px' }}>›</span>
                     </a>
                   ))}
@@ -458,19 +321,11 @@ export default function Profile() {
               </SectionCard>
 
               {/* Sign out */}
-              <button onClick={logout} style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                background: 'transparent', border: '1px solid #E6DDD3',
-                padding: '13px', cursor: 'pointer',
-                fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400,
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                color: '#963838', transition: 'all 0.2s ease',
-              }}
+              <button onClick={logout} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'transparent', border: '1px solid #E6DDD3', padding: '13px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#963838', transition: 'all 0.2s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FCF3F3'; e.currentTarget.style.borderColor = '#963838' }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = '#E6DDD3' }}
               >
-                <LogOut size={14} strokeWidth={1.5} />
-                Sign Out
+                <LogOut size={14} strokeWidth={1.5} /> Sign Out
               </button>
             </div>
           </div>

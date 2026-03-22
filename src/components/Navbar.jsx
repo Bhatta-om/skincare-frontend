@@ -62,13 +62,10 @@ const NAV_CSS = `
   }
   .mega-drop-link:last-child { border-bottom: none; }
   .mega-drop-link:hover { color: #B8895A; padding-left: 6px; }
-
-  /* Announcement bar — scrolls away naturally */
   .announcement-bar-wrap {
     background: #16100C;
     width: 100%;
   }
-  /* Navbar transparent → white transition */
   .nav-transparent { background: transparent !important; border-bottom-color: transparent !important; }
   .nav-white        { background: #FFFFFF !important; }
   nav { transition: background 0.35s ease, box-shadow 0.3s ease, border-color 0.35s ease !important; }
@@ -168,41 +165,36 @@ export default function Navbar() {
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
 
   const location    = useLocation()
-  const userMenuRef    = useRef()
-  const userDropRef    = useRef()
+  const userMenuRef = useRef()
+  const userDropRef = useRef()
   const navRef      = useRef()
   const wishlistCount = wishlistIds.length
 
-  // Fetch cart
   useEffect(() => {
     if (user && typeof fetchCartCount === 'function') fetchCartCount()
   }, [user, location.pathname])
 
-  // Close everything on route change
   useEffect(() => {
     setDrawerOpen(false); setSearchOpen(false)
     setMegaOpen(false);   setUserMenuOpen(false)
   }, [location.pathname])
 
-  // Scroll shrink
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', fn, { passive: true })
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  // Close user menu on outside click — checks both button and dropdown panel
   useEffect(() => {
     const fn = (e) => {
-      const inButton   = userMenuRef.current  && userMenuRef.current.contains(e.target)
-      const inDropdown = userDropRef.current   && userDropRef.current.contains(e.target)
+      const inButton   = userMenuRef.current && userMenuRef.current.contains(e.target)
+      const inDropdown = userDropRef.current && userDropRef.current.contains(e.target)
       if (!inButton && !inDropdown) setUserMenuOpen(false)
     }
     if (userMenuOpen) document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [userMenuOpen])
 
-  // Lock body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = drawerOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -210,7 +202,6 @@ export default function Navbar() {
 
   const openMega  = () => {
     clearTimeout(megaTimer)
-    // Recalculate position just before opening
     if (navRef.current) {
       const rect = navRef.current.getBoundingClientRect()
       document.documentElement.style.setProperty('--navbar-bottom', `${rect.bottom}px`)
@@ -219,13 +210,10 @@ export default function Navbar() {
   }
   const closeMega = () => { const t = setTimeout(() => setMegaOpen(false), 180); setMegaTimer(t) }
 
-  // Keep --navbar-bottom updated for mega menu positioning
   useEffect(() => {
     const updateNavBottom = () => {
       if (navRef.current) {
-        const rect = navRef.current.getBoundingClientRect()
-        // SCROLLED: navbar on top → announcement bar (44px) is below navbar → mega menu goes below both
-        // NOT SCROLLED: announcement on top → navbar below it → mega menu goes below navbar (rect.bottom already correct)
+        const rect  = navRef.current.getBoundingClientRect()
         const extra = scrolled ? 44 : 0
         document.documentElement.style.setProperty('--navbar-bottom', `${rect.bottom + extra}px`)
       }
@@ -257,73 +245,42 @@ export default function Navbar() {
     { label: 'View All',      path: '/products'                            },
   ]
 
-  // Navbar height for announcement bar offset
   const navHeight = scrolled ? '60px' : '68px'
-  const navH = navHeight
-  const annBarH = 44 // announcement bar height in px
-
-  // Colors based on state
-  const isActivated = scrolled || navHovered  // hover OR scroll = activated state
+  const navH      = navHeight
+  const annBarH   = 44
+  const isActivated = scrolled || navHovered
 
   return (
     <>
       <style>{NAV_CSS}</style>
 
-      {/* ══════════════════════════════════════════════════════
-          TECHNIQUE: both bars always in DOM order (announcement first).
-          On scroll we translateY each bar to visually swap them:
-            - Navbar slides UP   by annBarH  → appears above announcement
-            - Announcement slides DOWN by navH → appears below navbar
-          Both transitions run simultaneously with cubic-bezier easing
-          → smooth luxury crossover effect, no snap
-      ══════════════════════════════════════════════════════ */}
       <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 51,
-        // NOTE: overflow hidden clips the bars during swap animation cleanly
-        // Dropdown uses position:fixed so it escapes this clipping
+        position: 'sticky', top: 0, zIndex: 51,
         height: `calc(${navH} + ${annBarH}px)`,
         overflow: 'hidden',
         boxShadow: scrolled ? '0 4px 24px rgba(22,16,12,0.10)' : 'none',
         transition: 'box-shadow 0.4s ease',
       }}>
 
-        {/* ── ANNOUNCEMENT BAR
-            Initial:  translateY(0)        — sits at top naturally
-            Scrolled: translateY(navH)     — slides down below navbar
-        ── */}
+        {/* ── Announcement Bar ── */}
         <div
           onMouseEnter={() => setNavHovered(true)}
           onMouseLeave={() => setNavHovered(false)}
           style={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0,
+            position: 'absolute', top: 0, left: 0, right: 0,
             height: `${annBarH}px`,
             transform: scrolled ? `translateY(${navH})` : 'translateY(0)',
             transition: 'transform 0.5s cubic-bezier(0.4,0,0.2,1), background 0.35s ease',
             background: isActivated ? '#16100C' : '#FAF8F5',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: '14px', padding: '0 24px',
-            fontFamily: T.sans, boxSizing: 'border-box',
-            zIndex: 1,
+            fontFamily: T.sans, boxSizing: 'border-box', zIndex: 1,
           }}>
-          <span style={{
-            fontSize: '11px',
-            color: isActivated ? '#C8B49A' : '#AA9688',
-            letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 300,
-            transition: 'color 0.35s ease',
-          }}>
+          <span style={{ fontSize: '11px', color: isActivated ? '#C8B49A' : '#AA9688', letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 300, transition: 'color 0.35s ease' }}>
             Discover Your Skin Type — Free AI Analysis in 30 Seconds
           </span>
           <span style={{ color: 'rgba(184,137,90,0.5)', fontSize: '12px' }}>→</span>
-          <Link to="/skin-analysis" style={{
-            fontFamily: T.sans, fontSize: '11px', color: T.accent,
-            letterSpacing: '0.18em', textTransform: 'uppercase',
-            textDecoration: 'none', fontWeight: 400,
-            borderBottom: '1px solid rgba(184,137,90,0.4)',
-            paddingBottom: '1px', transition: 'color 0.2s',
-          }}
+          <Link to="/skin-analysis" style={{ fontFamily: T.sans, fontSize: '11px', color: T.accent, letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none', fontWeight: 400, borderBottom: '1px solid rgba(184,137,90,0.4)', paddingBottom: '1px', transition: 'color 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.color = '#D4A96A'}
             onMouseLeave={e => e.currentTarget.style.color = T.accent}
           >
@@ -331,188 +288,118 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* ── NAVBAR
-            Initial:  translateY(annBarH)  — sits below announcement bar
-            Scrolled: translateY(0)        — slides up to top
-        ── */}
+        {/* ── Navbar ── */}
         <nav ref={navRef}
           onMouseEnter={() => setNavHovered(true)}
           onMouseLeave={() => setNavHovered(false)}
           style={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0,
+            position: 'absolute', top: 0, left: 0, right: 0,
             transform: scrolled ? 'translateY(0)' : `translateY(${annBarH}px)`,
             transition: 'transform 0.5s cubic-bezier(0.4,0,0.2,1), background 0.35s ease, border-color 0.35s ease',
             background: isActivated ? '#FFFFFF' : '#FAF8F5',
             borderBottom: `1px solid ${isActivated ? T.borderL : 'transparent'}`,
             zIndex: 2,
           }}>
-        <div className="container-luxury" style={{
-          height: navH,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'relative',
-          transition: 'height 0.25s ease',
-          paddingLeft: '20px',
-        }}>
+          <div className="container-luxury" style={{ height: navH, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', transition: 'height 0.25s ease', paddingLeft: '20px' }}>
 
-          {/* ══ LEFT: [≡ Hamburger] [SKINCARE Logo] ══ */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flex: 1 }}>
+            {/* ── LEFT ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flex: 1 }}>
+              <IconBtn title="Menu" onClick={() => setDrawerOpen(s => !s)} style={{ color: drawerOpen ? T.accent : T.dark, flexShrink: 0, marginLeft: '-4px' }}>
+                {drawerOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
+              </IconBtn>
+              <Link to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                style={{ fontFamily: T.serif, fontSize: '18px', fontWeight: 700, color: T.dark, letterSpacing: '0.12em', textDecoration: 'none', userSelect: 'none', flexShrink: 0, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
+                SkinCare
+              </Link>
+            </div>
 
-            {/* ≡ Hamburger — slightly pulled toward edge */}
-            <IconBtn
-              title="Menu"
-              onClick={() => setDrawerOpen(s => !s)}
-              style={{ color: drawerOpen ? T.accent : T.dark, flexShrink: 0, marginLeft: '-4px' }}
-            >
-              {drawerOpen
-                ? <X    size={20} strokeWidth={1.5} />
-                : <Menu size={20} strokeWidth={1.5} />}
-            </IconBtn>
-
-            {/* Logo — all caps, bold */}
-            <Link
-              to="/"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              style={{
-                fontFamily:    T.serif,
-                fontSize:      '18px',
-                fontWeight:    700,
-                color:         T.dark,
-                letterSpacing: '0.12em',
-                textDecoration:'none',
-                userSelect:    'none',
-                flexShrink:    0,
-                whiteSpace:    'nowrap',
-                textTransform: 'uppercase',
-              }}
-            >
-              SkinCare
-            </Link>
-          </div>
-
-          {/* ══ CENTER: Nav Links (desktop only) ══ */}
-          <div className="nav-only-desktop" style={{
-            alignItems: 'center', gap: '36px',
-            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
-            zIndex: 52,
-          }}>
+            {/* ── CENTER: Nav Links ── */}
+            <div className="nav-only-desktop" style={{ alignItems: 'center', gap: '36px', position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 52 }}>
               <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                 Home
               </NavLink>
 
-              {/* Products mega menu trigger */}
-              <div style={{ position: 'relative' }}
-                onMouseEnter={openMega}
-                onMouseLeave={closeMega}
-              >
-                <button className={`nav-link ${location.pathname.startsWith('/products') ? 'active' : ''}`} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                  position: 'relative', zIndex: 52,
-                }}>
+              <div style={{ position: 'relative' }} onMouseEnter={openMega} onMouseLeave={closeMega}>
+                <button className={`nav-link ${location.pathname.startsWith('/products') ? 'active' : ''}`} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', position: 'relative', zIndex: 52 }}>
                   Products
-                  <ChevronDown size={12} strokeWidth={1.5} style={{
-                    color: T.subtle,
-                    transition: 'transform 0.25s ease',
-                    transform: megaOpen ? 'rotate(180deg)' : 'rotate(0)',
-                  }} />
+                  <ChevronDown size={12} strokeWidth={1.5} style={{ color: T.subtle, transition: 'transform 0.25s ease', transform: megaOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
                 </button>
               </div>
 
-              <NavLink to="/skin-analysis" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                style={{ position: 'relative', zIndex: 52 }}
-              >
+              <NavLink to="/skin-analysis" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative', zIndex: 52 }}>
                 Skin Analysis
               </NavLink>
 
               {user && (
-                <NavLink to="/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                  style={{ position: 'relative', zIndex: 52 }}
-                >
+                <NavLink to="/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative', zIndex: 52 }}>
                   Orders
+                </NavLink>
+              )}
+
+              {/* ✅ NEW — My Skin link in desktop nav */}
+              {user && (
+                <NavLink to="/my-analysis" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative', zIndex: 52 }}>
+                  My Skin
                 </NavLink>
               )}
             </div>
 
-          {/* ══ RIGHT: Search + Account + Cart ══ */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flex: 1, justifyContent: 'flex-end', zIndex: 1 }}>
+            {/* ── RIGHT ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flex: 1, justifyContent: 'flex-end', zIndex: 1 }}>
+              <IconBtn title="Search" onClick={() => setSearchOpen(true)}>
+                <Search size={19} strokeWidth={1.5} />
+              </IconBtn>
 
-            {/* Search */}
-            <IconBtn title="Search" onClick={() => setSearchOpen(true)}>
-              <Search size={19} strokeWidth={1.5} />
-            </IconBtn>
+              {user ? (
+                <>
+                  <div className="nav-only-desktop" style={{ alignItems: 'center' }}>
+                    <Link to="/wishlist" style={{ position: 'relative', display: 'flex', color: T.dark, transition: 'color 0.2s ease' }}
+                      onMouseEnter={e => e.currentTarget.style.color = T.accent}
+                      onMouseLeave={e => e.currentTarget.style.color = T.dark}
+                    >
+                      <Heart size={19} strokeWidth={1.5} fill={wishlistCount > 0 ? T.accent : 'none'} style={{ color: wishlistCount > 0 ? T.accent : 'inherit' }} />
+                      {wishlistCount > 0 && <CountBadge count={wishlistCount} />}
+                    </Link>
+                  </div>
 
-            {user ? (
-              <>
-                {/* Wishlist — desktop only */}
-                <div className="nav-only-desktop" style={{ alignItems: 'center' }}>
-                  <Link to="/wishlist" style={{ position: 'relative', display: 'flex', color: T.dark, transition: 'color 0.2s ease' }}
+                  <Link to="/cart" style={{ position: 'relative', display: 'flex', color: T.dark, transition: 'color 0.2s ease' }}
                     onMouseEnter={e => e.currentTarget.style.color = T.accent}
                     onMouseLeave={e => e.currentTarget.style.color = T.dark}
                   >
-                    <Heart size={19} strokeWidth={1.5}
-                      fill={wishlistCount > 0 ? T.accent : 'none'}
-                      style={{ color: wishlistCount > 0 ? T.accent : 'inherit' }}
-                    />
-                    {wishlistCount > 0 && <CountBadge count={wishlistCount} />}
+                    <ShoppingBag size={19} strokeWidth={1.5} />
+                    {cartCount > 0 && <CountBadge count={cartCount} />}
                   </Link>
-                </div>
 
-                {/* Cart */}
-                <Link to="/cart" style={{ position: 'relative', display: 'flex', color: T.dark, transition: 'color 0.2s ease' }}
-                  onMouseEnter={e => e.currentTarget.style.color = T.accent}
-                  onMouseLeave={e => e.currentTarget.style.color = T.dark}
-                >
-                  <ShoppingBag size={19} strokeWidth={1.5} />
-                  {cartCount > 0 && <CountBadge count={cartCount} />}
-                </Link>
-
-                {/* Account — desktop only */}
-                <div className="nav-only-desktop" style={{ position: 'relative', alignItems: 'center' }} ref={userMenuRef}>
-                  {/* Button only — dropdown rendered outside wrapper below */}
-                  <button
-                    onClick={() => setUserMenuOpen(s => !s)}
-                    onMouseEnter={e => e.currentTarget.style.color = T.accent}
-                    onMouseLeave={e => e.currentTarget.style.color = T.dark}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '5px',
-                      color: T.dark, fontFamily: T.sans, fontSize: '12px',
-                      transition: 'color 0.2s ease', padding: '4px',
-                    }}
-                  >
-                    <User size={19} strokeWidth={1.5} />
-                    <span style={{ fontSize: '12px', letterSpacing: '0.02em', fontWeight: 300 }}>
-                      {user?.first_name || 'Account'}
-                    </span>
-                    <ChevronDown size={11} strokeWidth={1.5} style={{ color: T.subtle }} />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Guest — desktop */}
-                <div className="nav-only-desktop" style={{ alignItems: 'center', gap: '20px' }}>
-                  <Link to="/login"    className="nav-link">Sign In</Link>
-                  <Link to="/register" className="btn-primary" style={{ padding: '10px 22px', fontSize: '10.5px' }}>
-                    Register
-                  </Link>
-                </div>
-                {/* Guest — mobile sign in */}
-                <div className="nav-only-mobile" style={{ alignItems: 'center' }}>
-                  <Link to="/login" className="nav-link" style={{ fontSize: '11px' }}>Sign In</Link>
-                </div>
-              </>
-            )}
+                  <div className="nav-only-desktop" style={{ position: 'relative', alignItems: 'center' }} ref={userMenuRef}>
+                    <button
+                      onClick={() => setUserMenuOpen(s => !s)}
+                      onMouseEnter={e => e.currentTarget.style.color = T.accent}
+                      onMouseLeave={e => e.currentTarget.style.color = T.dark}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', color: T.dark, fontFamily: T.sans, fontSize: '12px', transition: 'color 0.2s ease', padding: '4px' }}
+                    >
+                      <User size={19} strokeWidth={1.5} />
+                      <span style={{ fontSize: '12px', letterSpacing: '0.02em', fontWeight: 300 }}>{user?.first_name || 'Account'}</span>
+                      <ChevronDown size={11} strokeWidth={1.5} style={{ color: T.subtle }} />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="nav-only-desktop" style={{ alignItems: 'center', gap: '20px' }}>
+                    <Link to="/login"    className="nav-link">Sign In</Link>
+                    <Link to="/register" className="btn-primary" style={{ padding: '10px 22px', fontSize: '10.5px' }}>Register</Link>
+                  </div>
+                  <div className="nav-only-mobile" style={{ alignItems: 'center' }}>
+                    <Link to="/login" className="nav-link" style={{ fontSize: '11px' }}>Sign In</Link>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
-      </div>{/* ── END sticky wrapper ── */}
-
-      {/* ── User dropdown — rendered OUTSIDE sticky wrapper to escape overflow:hidden ── */}
+      {/* ── User Dropdown ── */}
       {userMenuOpen && user && (
         <div ref={userDropRef} style={{
           position: 'fixed',
@@ -535,21 +422,16 @@ export default function Navbar() {
             </p>
           </div>
           <div style={{ padding: '6px' }}>
-            <DropdownItem to="/profile" icon={<User    size={14} strokeWidth={1.5} />} label="My Profile" />
-            <DropdownItem to="/orders"  icon={<Package size={14} strokeWidth={1.5} />} label="My Orders"  />
+            <DropdownItem to="/profile"     icon={<User         size={14} strokeWidth={1.5} />} label="My Profile"       />
+            <DropdownItem to="/orders"      icon={<Package      size={14} strokeWidth={1.5} />} label="My Orders"        />
+            {/* ✅ NEW — My Skin Analysis in dropdown */}
+            <DropdownItem to="/my-analysis" icon={<FlaskConical size={14} strokeWidth={1.5} />} label="My Skin Analysis" />
             {user?.is_staff && (
               <DropdownItem to="/admin" icon={<Settings size={14} strokeWidth={1.5} />} label="Admin Panel" accent />
             )}
             <div style={{ height: '1px', background: T.borderL, margin: '5px 0' }} />
             <button onClick={logout}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '9px 12px', width: '100%',
-                fontFamily: T.sans, fontSize: '13px', color: '#963838',
-                background: 'none', border: 'none', cursor: 'pointer',
-                borderRadius: '2px', textAlign: 'left', fontWeight: 300,
-                transition: 'background 0.2s ease',
-              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', width: '100%', fontFamily: T.sans, fontSize: '13px', color: '#963838', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '2px', textAlign: 'left', fontWeight: 300, transition: 'background 0.2s ease' }}
               onMouseEnter={e => e.currentTarget.style.background = '#FCF3F3'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
@@ -559,69 +441,32 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* ── Mega Menu — outside nav, smooth slide-down ── */}
+      {/* ── Mega Menu ── */}
       {megaOpen && (
-        <div
-          className="mega-menu-panel"
-          onMouseEnter={openMega}
-          onMouseLeave={closeMega}
-          style={{
-            position: 'fixed',
-            top: 'var(--navbar-bottom, 112px)',
-            left: 0, right: 0,
-            background: '#FFFFFF',
-            borderTop: `2px solid ${T.accent}`,
-            borderBottom: `1px solid ${T.borderL}`,
-            boxShadow: '0 20px 60px rgba(22,16,12,0.10)',
-            padding: '40px 0 44px',
-            zIndex: 49,
-          }}
-        >
+        <div className="mega-menu-panel" onMouseEnter={openMega} onMouseLeave={closeMega}
+          style={{ position: 'fixed', top: 'var(--navbar-bottom, 112px)', left: 0, right: 0, background: '#FFFFFF', borderTop: `2px solid ${T.accent}`, borderBottom: `1px solid ${T.borderL}`, boxShadow: '0 20px 60px rgba(22,16,12,0.10)', padding: '40px 0 44px', zIndex: 49 }}>
           <div className="container-luxury">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 280px', gap: '48px', alignItems: 'start' }}>
-
-              {/* Shop By Category */}
               <div>
-                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>
-                  Shop By Category
-                </p>
-                {categories.map(cat => (
-                  <Link key={cat.label} to={cat.path} className="mega-drop-link" onClick={() => setMegaOpen(false)}>
-                    {cat.label}
-                  </Link>
-                ))}
+                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>Shop By Category</p>
+                {categories.map(cat => <Link key={cat.label} to={cat.path} className="mega-drop-link" onClick={() => setMegaOpen(false)}>{cat.label}</Link>)}
               </div>
-
-              {/* Collections */}
               <div>
-                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>
-                  Collections
-                </p>
-                {collections.map(item => (
-                  <Link key={item.label} to={item.path} className="mega-drop-link" onClick={() => setMegaOpen(false)}>
-                    {item.label}
-                  </Link>
-                ))}
+                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>Collections</p>
+                {collections.map(item => <Link key={item.label} to={item.path} className="mega-drop-link" onClick={() => setMegaOpen(false)}>{item.label}</Link>)}
               </div>
-
-              {/* Skin Tools */}
               <div>
-                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>
-                  Skin Tools
-                </p>
-                <Link to="/skin-analysis"        className="mega-drop-link" onClick={() => setMegaOpen(false)}>Skin Analysis</Link>
-                <Link to="/products?featured=true" className="mega-drop-link" onClick={() => setMegaOpen(false)}>Recommended For You</Link>
+                <p style={{ fontFamily: T.sans, fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.22em', color: T.subtle, marginBottom: '18px', fontWeight: 400, paddingBottom: '10px', borderBottom: `1px solid ${T.border}` }}>Skin Tools</p>
+                <Link to="/skin-analysis"           className="mega-drop-link" onClick={() => setMegaOpen(false)}>Skin Analysis</Link>
+                {/* ✅ NEW — My Skin Analysis in mega menu */}
+                <Link to="/my-analysis"             className="mega-drop-link" onClick={() => setMegaOpen(false)}>My Skin History</Link>
+                <Link to="/products?featured=true"  className="mega-drop-link" onClick={() => setMegaOpen(false)}>Recommended For You</Link>
               </div>
-
-              {/* CTA card */}
               <div style={{ background: '#F4EDE4', border: `1px solid ${T.border}`, padding: '28px 24px' }}>
                 <FlaskConical size={22} strokeWidth={1.5} style={{ color: T.accent, marginBottom: '14px' }} />
                 <h4 style={{ fontFamily: T.serif, fontSize: '15px', color: T.dark, fontWeight: 400, marginBottom: '8px', lineHeight: 1.3 }}>Free Skin Analysis</h4>
-                <p style={{ fontFamily: T.sans, fontSize: '12px', color: T.muted, lineHeight: 1.7, marginBottom: '18px', fontWeight: 300 }}>
-                  Get personalized product recommendations for your unique skin type.
-                </p>
-                <Link to="/skin-analysis" className="btn-primary" onClick={() => setMegaOpen(false)}
-                  style={{ fontSize: '10.5px', padding: '10px 18px', display: 'inline-flex', alignItems: 'center' }}>
+                <p style={{ fontFamily: T.sans, fontSize: '12px', color: T.muted, lineHeight: 1.7, marginBottom: '18px', fontWeight: 300 }}>Get personalized product recommendations for your unique skin type.</p>
+                <Link to="/skin-analysis" className="btn-primary" onClick={() => setMegaOpen(false)} style={{ fontSize: '10.5px', padding: '10px 18px', display: 'inline-flex', alignItems: 'center' }}>
                   Analyze My Skin
                 </Link>
               </div>
@@ -631,93 +476,46 @@ export default function Navbar() {
       )}
 
       {/* ── Drawer Overlay ── */}
-      <div
-        onClick={() => setDrawerOpen(false)}
-        style={{
-          position: 'fixed', inset: 0, zIndex: 40,
-          background: 'rgba(22,16,12,0.45)',
-          opacity: drawerOpen ? 1 : 0,
-          visibility: drawerOpen ? 'visible' : 'hidden',
-          transition: 'opacity 0.35s ease, visibility 0.35s ease',
-          backdropFilter: 'blur(2px)',
-        }}
-      />
+      <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(22,16,12,0.45)', opacity: drawerOpen ? 1 : 0, visibility: drawerOpen ? 'visible' : 'hidden', transition: 'opacity 0.35s ease, visibility 0.35s ease', backdropFilter: 'blur(2px)' }} />
 
       {/* ── Side Drawer ── */}
-      <div style={{
-        position: 'fixed', left: 0, top: 0, bottom: 0, width: '290px',
-        background: '#FFFFFF',
-        boxShadow: '6px 0 30px rgba(22,16,12,0.13)',
-        zIndex: 50,
-        display: 'flex', flexDirection: 'column',
-        transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-        transition: 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-      }}>
+      <div style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: '290px', background: '#FFFFFF', boxShadow: '6px 0 30px rgba(22,16,12,0.13)', zIndex: 50, display: 'flex', flexDirection: 'column', transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }}>
         <div style={{ height: '2px', background: `linear-gradient(to right, ${T.accent}, #D4A96A, ${T.accent})`, flexShrink: 0 }} />
 
-        {/* Header */}
-        <div style={{
-          padding: '18px 24px', borderBottom: `1px solid ${T.borderL}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
-        }}>
-          <span style={{ fontFamily: T.serif, fontSize: '16px', fontWeight: 700, color: T.dark, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-            SkinCare
-          </span>
-          <IconBtn onClick={() => setDrawerOpen(false)}>
-            <X size={19} strokeWidth={1.5} />
-          </IconBtn>
+        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${T.borderL}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontFamily: T.serif, fontSize: '16px', fontWeight: 700, color: T.dark, letterSpacing: '0.12em', textTransform: 'uppercase' }}>SkinCare</span>
+          <IconBtn onClick={() => setDrawerOpen(false)}><X size={19} strokeWidth={1.5} /></IconBtn>
         </div>
 
-        {/* User info */}
         {user && (
           <div style={{ padding: '14px 24px', borderBottom: `1px solid ${T.borderL}`, background: '#FFFCF9', flexShrink: 0 }}>
-            <p style={{ fontFamily: T.serif, fontSize: '14px', color: T.dark }}>
-              {user?.first_name} {user?.last_name}
-            </p>
-            <p style={{ fontFamily: T.sans, fontSize: '11.5px', color: T.subtle, marginTop: '2px', fontWeight: 300 }}>
-              {user?.email}
-            </p>
+            <p style={{ fontFamily: T.serif, fontSize: '14px', color: T.dark }}>{user?.first_name} {user?.last_name}</p>
+            <p style={{ fontFamily: T.sans, fontSize: '11.5px', color: T.subtle, marginTop: '2px', fontWeight: 300 }}>{user?.email}</p>
           </div>
         )}
 
-        {/* Links */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           <MobileLink to="/"              label="Home"          active={location.pathname === '/'} />
           <MobileLink to="/products"      label="All Products"  active={location.pathname === '/products'} />
           <MobileLink to="/skin-analysis" label="Skin Analysis" active={location.pathname === '/skin-analysis'} />
 
-          {/* Shop categories accordion */}
-          <button
-            onClick={() => setMobileShopOpen(s => !s)}
-            style={{
-              display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between',
-              padding: '14px 24px', background: 'none', border: 'none', cursor: 'pointer',
-              borderBottom: `1px solid ${T.borderL}`,
-              fontFamily: T.sans, fontSize: '11.5px',
-              textTransform: 'uppercase', letterSpacing: '0.12em',
-              color: T.muted, fontWeight: 400,
-            }}
-          >
+          <button onClick={() => setMobileShopOpen(s => !s)} style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: `1px solid ${T.borderL}`, fontFamily: T.sans, fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.12em', color: T.muted, fontWeight: 400 }}>
             Shop By Category
-            <ChevronDown size={13} strokeWidth={1.5} style={{
-              color: T.subtle,
-              transform: mobileShopOpen ? 'rotate(180deg)' : 'rotate(0)',
-              transition: 'transform 0.25s ease',
-            }} />
+            <ChevronDown size={13} strokeWidth={1.5} style={{ color: T.subtle, transform: mobileShopOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.25s ease' }} />
           </button>
           {mobileShopOpen && (
             <div style={{ background: '#FFFCF9', paddingLeft: '16px' }}>
-              {categories.map(cat => (
-                <MobileLink key={cat.label} to={cat.path} label={cat.label} sub />
-              ))}
+              {categories.map(cat => <MobileLink key={cat.label} to={cat.path} label={cat.label} sub />)}
             </div>
           )}
 
           {user && (
             <>
-              <MobileLink to="/wishlist" label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount})` : ''}`} icon={<Heart    size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
-              <MobileLink to="/orders"  label="My Orders"                                                       icon={<Package  size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
-              <MobileLink to="/profile" label="My Profile"                                                      icon={<User     size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
+              <MobileLink to="/wishlist"    label={`Wishlist${wishlistCount > 0 ? ` (${wishlistCount})` : ''}`} icon={<Heart        size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
+              <MobileLink to="/orders"      label="My Orders"                                                    icon={<Package      size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
+              {/* ✅ NEW — My Skin Analysis in mobile drawer */}
+              <MobileLink to="/my-analysis" label="My Skin Analysis"                                             icon={<FlaskConical size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
+              <MobileLink to="/profile"     label="My Profile"                                                   icon={<User         size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} />
               {user?.is_staff && (
                 <MobileLink to="/admin" label="Admin Panel" icon={<Settings size={15} strokeWidth={1.5} style={{ marginRight: '2px' }} />} accent />
               )}
@@ -732,89 +530,46 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Logout */}
         {user && (
           <div style={{ padding: '16px 24px', borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
-            <button onClick={logout} style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: T.sans, fontSize: '12px',
-              textTransform: 'uppercase', letterSpacing: '0.12em',
-              color: '#963838', padding: 0, fontWeight: 400,
-            }}>
+            <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: T.sans, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#963838', padding: 0, fontWeight: 400 }}>
               <LogOut size={15} strokeWidth={1.5} /> Sign Out
             </button>
           </div>
         )}
       </div>
 
-      {/* ── Search Overlay — SkinMedica Style ── */}
+      {/* ── Search Overlay ── */}
       {searchOpen && (
-        <div
-          onClick={e => { if (e.target === e.currentTarget) setSearchOpen(false) }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 60,
-            background: 'rgba(22,16,12,0.45)',
-            backdropFilter: 'blur(2px)',
-            animation: 'pageFadeIn 0.2s ease',
-          }}
-        >
+        <div onClick={e => { if (e.target === e.currentTarget) setSearchOpen(false) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(22,16,12,0.45)', backdropFilter: 'blur(2px)', animation: 'pageFadeIn 0.2s ease' }}>
           <div style={{ background: '#FFFFFF', width: '100%', boxShadow: '0 8px 40px rgba(22,16,12,0.12)' }}>
-
-            {/* Input row — underline only */}
             <div style={{ background: '#FAF8F5', borderBottom: `1px solid ${T.border}` }}>
               <div className="container-luxury" style={{ display: 'flex', alignItems: 'center', height: '68px', gap: '14px' }}>
                 <Search size={17} strokeWidth={1.5} style={{ color: '#AA9688', flexShrink: 0 }} />
                 <div style={{ flex: 1, borderBottom: '1.5px solid #16100C', position: 'relative' }}>
-                  <SearchBox
-                    variant="overlay"
-                    placeholder="Search by product name, type, or keyword"
-                    autoFocus
-                    onClose={() => setSearchOpen(false)}
-                  />
+                  <SearchBox variant="overlay" placeholder="Search by product name, type, or keyword" autoFocus onClose={() => setSearchOpen(false)} />
                 </div>
-                <IconBtn onClick={() => setSearchOpen(false)} style={{ flexShrink: 0 }}>
-                  <X size={19} strokeWidth={1.5} />
-                </IconBtn>
+                <IconBtn onClick={() => setSearchOpen(false)}><X size={19} strokeWidth={1.5} /></IconBtn>
               </div>
             </div>
-
-            {/* Popular Categories */}
             <div style={{ background: '#FFFFFF', padding: '32px 0 40px' }}>
               <div className="container-luxury">
-                <h3 style={{ fontFamily: T.serif, fontSize: '22px', color: T.dark, fontWeight: 400, marginBottom: '24px' }}>
-                  Popular Categories
-                </h3>
+                <h3 style={{ fontFamily: T.serif, fontSize: '22px', color: T.dark, fontWeight: 400, marginBottom: '24px' }}>Popular Categories</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                   {categories.slice(0, 4).map((cat, i) => {
                     const bgs = ['#EBD9C6', '#F4EDE4', '#E8D5C0', '#EDD9C5']
                     return (
-                      <button key={cat.label}
-                        onClick={() => { navigate(cat.path); setSearchOpen(false) }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
-                      >
-                        <div style={{
-                          height: '160px', background: bgs[i],
-                          marginBottom: '10px', overflow: 'hidden',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'opacity 0.2s ease',
-                        }}
+                      <button key={cat.label} onClick={() => { navigate(cat.path); setSearchOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+                        <div style={{ height: '160px', background: bgs[i], marginBottom: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.2s ease' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                         >
-                          <div style={{
-                            width: '56px', height: '56px', borderRadius: '50%',
-                            border: '1px solid rgba(184,137,90,0.3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.accent,
-                          }}>
+                          <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.accent }}>
                             <FlaskConical size={22} strokeWidth={1} />
                           </div>
                         </div>
-                        <p style={{
-                          fontFamily: T.sans, fontSize: '13.5px', color: T.body,
-                          fontWeight: 300, textDecoration: 'underline',
-                          textUnderlineOffset: '3px', transition: 'color 0.2s ease',
-                        }}
+                        <p style={{ fontFamily: T.sans, fontSize: '13.5px', color: T.body, fontWeight: 300, textDecoration: 'underline', textUnderlineOffset: '3px', transition: 'color 0.2s ease' }}
                           onMouseEnter={e => e.currentTarget.style.color = T.accent}
                           onMouseLeave={e => e.currentTarget.style.color = T.body}
                         >
