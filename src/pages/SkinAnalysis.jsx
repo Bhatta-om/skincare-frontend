@@ -124,6 +124,20 @@ const ERROR_CONFIG = {
       'Try taking a new photo and uploading again',
     ],
   },
+  IMAGE_TOO_BRIGHT: {
+    icon:  <Sun size={20} strokeWidth={1.5} />,
+    color: '#89670F',
+    bg:    '#FFFBF0',
+    border:'#F5DFA0',
+    title: 'Image too bright or overexposed',
+    tips: [
+      'Avoid taking the photo in direct sunlight',
+      'Turn off camera flash completely',
+      'Move to a shaded area with natural indirect light',
+      'Use indoor lighting — a well-lit room works best',
+      'Reduce screen brightness if using front camera',
+    ],
+  },
 }
 
 const LuxSelect = ({ value, onChange, children }) => (
