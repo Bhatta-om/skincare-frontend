@@ -28,7 +28,9 @@ export default function EsewaSuccess() {
         })
 
         if (res.data.success) {
+          // ✅ Clear both pending order and buy now data on success
           localStorage.removeItem('pending_order_id')
+          localStorage.removeItem('pending_buy_now')
           setStatus('success')
           setMessage(`Rs. ${res.data.payment?.amount} verified successfully`)
           setTimeout(() => navigate('/orders'), 3500)
@@ -163,8 +165,8 @@ export default function EsewaSuccess() {
                   onClick={() => navigate('/orders')}
                   className="btn-primary"
                   style={{ width: '100%', justifyContent: 'center', gap: '8px', background: '#4A7A57' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#3A6044'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#4A7A57'}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#3A6044' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#4A7A57' }}
                 >
                   <Package size={15} strokeWidth={1.5} />
                   View My Orders
@@ -229,12 +231,12 @@ export default function EsewaSuccess() {
 
         {/* Help text */}
         {status !== 'verifying' && (
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '11.5px', color: '#AA9688', textAlign: 'center', marginTop: '20px', fontWeight: 300 }}>
-            Need help?{' '}
-            <a href="mailto:support@skincare.com" style={{ color: '#B8895A', textDecoration: 'none' }}>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '11.5px', color: '#AA9688', textAlign: 'center', marginTop: '20px', fontWeight: 300 }}>
+            <span>Need help? </span>
+            <a href="mailto:support@skincare.com" style={{ color: '#B8895A', textDecoration: 'underline' }}>
               Contact support
             </a>
-          </p>
+          </div>
         )}
 
         {/* CSS Animations */}

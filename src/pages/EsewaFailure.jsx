@@ -1,13 +1,52 @@
 // src/pages/EsewaFailure.jsx
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { XCircle, ArrowRight, Home, ShoppingBag, AlertTriangle } from 'lucide-react'
+import { XCircle, ArrowRight, Home, ShoppingBag, AlertTriangle, RotateCcw } from 'lucide-react'
 
 const interFont = 'Inter, sans-serif'
 const serifFont = 'Playfair Display, serif'
 
 export default function EsewaFailure() {
-  const navigate = useNavigate()
+  const navigate                    = useNavigate()
+  const [isBuyNow, setIsBuyNow]     = useState(false)
+  const [buyNowData, setBuyNowData] = useState(null)
+
+  useEffect(() => {
+    // Check if this was a Buy Now or Cart payment
+    const stored = localStorage.getItem('pending_buy_now')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setIsBuyNow(true)
+        setBuyNowData(parsed)
+      } catch {
+        setIsBuyNow(false)
+      }
+    }
+  }, [])
+
+  const handleTryAgain = () => {
+    if (isBuyNow && buyNowData) {
+      // Buy Now — go back to product page
+      const slug = buyNowData?.product?.slug
+      navigate(slug ? `/products/${slug}` : '/products')
+    } else {
+      // Cart — go back to checkout
+      navigate('/checkout')
+    }
+  }
+
+  const handleBackToCart = () => {
+    localStorage.removeItem('pending_order_id')
+    localStorage.removeItem('pending_buy_now')
+    navigate('/cart')
+  }
+
+  const handleGoHome = () => {
+    localStorage.removeItem('pending_order_id')
+    localStorage.removeItem('pending_buy_now')
+    navigate('/')
+  }
 
   return (
     <div style={{
@@ -39,7 +78,7 @@ export default function EsewaFailure() {
           overflow: 'hidden',
         }}>
 
-          {/* Top red accent line */}
+          {/* Top red accent */}
           <div style={{ height: '3px', background: '#9B3A3A' }} />
 
           <div style={{ padding: '48px 40px', textAlign: 'center' }}>
@@ -65,7 +104,7 @@ export default function EsewaFailure() {
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
               color: '#9B3A3A',
-              marginBottom: '12px',
+              margin: '0 0 12px 0',
               fontWeight: 500,
             }}>
               Payment Cancelled
@@ -77,7 +116,7 @@ export default function EsewaFailure() {
               fontSize: '28px',
               color: '#1A0F0A',
               fontWeight: 400,
-              marginBottom: '12px',
+              margin: '0 0 12px 0',
               letterSpacing: '-0.01em',
             }}>
               Payment Failed
@@ -97,19 +136,19 @@ export default function EsewaFailure() {
               fontSize: '14px',
               color: '#7A6355',
               lineHeight: 1.75,
-              marginBottom: '28px',
+              margin: '0 0 28px 0',
             }}>
               Your payment was not completed successfully.
               Your order has not been placed and no amount
               has been charged from your account.
             </p>
 
-            {/* Info box */}
+            {/* Alert info box */}
             <div style={{
               background: '#FDF5F5',
               border: '1px solid #DCC0C0',
               padding: '16px 18px',
-              marginBottom: '28px',
+              marginBottom: '20px',
               display: 'flex',
               alignItems: 'flex-start',
               gap: '10px',
@@ -130,16 +169,65 @@ export default function EsewaFailure() {
               }}>
                 If any amount was deducted from your eSewa account,
                 it will be automatically refunded within 24 hours.
-                Please contact support if the issue persists.
               </p>
+            </div>
+
+            {/* What you can do box */}
+            <div style={{
+              background: '#FAF7F4',
+              border: '1px solid #E8DDD4',
+              padding: '16px 18px',
+              marginBottom: '28px',
+              textAlign: 'left',
+            }}>
+              <p style={{
+                fontFamily: interFont,
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                color: '#A89585',
+                margin: '0 0 10px 0',
+                fontWeight: 500,
+              }}>
+                What you can do
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  isBuyNow
+                    ? 'Go back to the product and try purchasing again'
+                    : 'Go back to checkout and retry the payment',
+                  'Choose Cash on Delivery as an alternative',
+                  'Check your eSewa balance and try again',
+                ].map((text, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                    <div style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: '#C49A6C',
+                      marginTop: '8px',
+                      flexShrink: 0,
+                    }} />
+                    <p style={{
+                      fontFamily: interFont,
+                      fontSize: '12px',
+                      color: '#7A6355',
+                      lineHeight: 1.6,
+                      margin: 0,
+                    }}>
+                      {text}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-              {/* Try Again */}
+              {/* Try Again / Back to Product */}
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={handleTryAgain}
                 style={{
                   width: '100%',
                   background: '#1A0F0A',
@@ -162,48 +250,51 @@ export default function EsewaFailure() {
                 onMouseEnter={e => { e.currentTarget.style.background = '#3D2B1F' }}
                 onMouseLeave={e => { e.currentTarget.style.background = '#1A0F0A' }}
               >
-                Try Again
+                <RotateCcw size={14} strokeWidth={1.5} />
+                {isBuyNow ? 'Back to Product' : 'Try Again'}
                 <ArrowRight size={14} strokeWidth={1.5} />
               </button>
 
-              {/* Back to Cart */}
-              <button
-                onClick={() => navigate('/cart')}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  color: '#1A0F0A',
-                  border: '1.5px solid #1A0F0A',
-                  padding: '13px 32px',
-                  fontFamily: interFont,
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.12em',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  borderRadius: '2px',
-                  transition: 'all 0.25s ease',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = '#1A0F0A'
-                  e.currentTarget.style.color = '#FFFFFF'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.color = '#1A0F0A'
-                }}
-              >
-                <ShoppingBag size={14} strokeWidth={1.5} />
-                Back to Cart
-              </button>
+              {/* Back to Cart — only for cart payments */}
+              {!isBuyNow && (
+                <button
+                  onClick={handleBackToCart}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    color: '#1A0F0A',
+                    border: '1.5px solid #1A0F0A',
+                    padding: '13px 32px',
+                    fontFamily: interFont,
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    borderRadius: '2px',
+                    transition: 'all 0.25s ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = '#1A0F0A'
+                    e.currentTarget.style.color = '#FFFFFF'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = '#1A0F0A'
+                  }}
+                >
+                  <ShoppingBag size={14} strokeWidth={1.5} />
+                  Back to Cart
+                </button>
+              )}
 
               {/* Go Home */}
               <button
-                onClick={() => navigate('/')}
+                onClick={handleGoHome}
                 style={{
                   width: '100%',
                   background: 'transparent',
