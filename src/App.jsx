@@ -17,11 +17,12 @@ const SkinAnalysis   = lazy(() => import('./pages/SkinAnalysis'))
 const Cart           = lazy(() => import('./pages/Cart'))
 const Checkout       = lazy(() => import('./pages/Checkout'))
 const EsewaSuccess   = lazy(() => import('./pages/EsewaSuccess'))
+const EsewaFailure   = lazy(() => import('./pages/EsewaFailure'))
 const OrderHistory   = lazy(() => import('./pages/OrderHistory'))
 const Profile        = lazy(() => import('./pages/Profile'))
 const Wishlist       = lazy(() => import('./pages/Wishlist'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const MyAnalysis     = lazy(() => import('./pages/MyAnalysis'))  // ✅ NEW
+const MyAnalysis     = lazy(() => import('./pages/MyAnalysis'))
 
 const AdminDashboard    = lazy(() => import('./pages/admin/AdminDashboard'))
 const AdminOrders       = lazy(() => import('./pages/admin/AdminOrders'))
@@ -37,13 +38,13 @@ const AdminSkinAnalysis = lazy(() => import('./pages/admin/AdminSkinAnalysis'))
 const PageLoader = () => (
   <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAF8F5', flexDirection: 'column', gap: '16px' }}>
     <div style={{ width: '32px', height: '32px', border: '1.5px solid #E6DDD3', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
-    <p style={{ fontFamily: "\'DM Sans\',sans-serif", fontSize: '11px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 400 }}>Loading</p>
+    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 400 }}>Loading</p>
   </div>
 )
 
 const LuxuryLoader = () => (
   <div style={{ position: 'fixed', inset: 0, background: '#FAF8F5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 9999 }}>
-    <span style={{ fontFamily: "\'Playfair Display\',serif", fontSize: '22px', color: '#16100C', letterSpacing: '0.08em' }}>SKINCARE</span>
+    <span style={{ fontFamily: 'Playfair Display,serif', fontSize: '22px', color: '#16100C', letterSpacing: '0.08em' }}>SkinCare</span>
     <div style={{ width: '36px', height: '36px', border: '1.5px solid #E6DDD3', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
   </div>
 )
@@ -58,13 +59,13 @@ const AdminLoader = () => (
 const NotFound = () => (
   <div style={{ minHeight: '70vh', background: '#FAF8F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
     <div style={{ textAlign: 'center', maxWidth: '480px' }}>
-      <p style={{ fontFamily: "\'Playfair Display\',serif", fontSize: 'clamp(80px,15vw,120px)', color: '#E6DDD3', fontWeight: 400, lineHeight: 1, marginBottom: '8px', letterSpacing: '-0.04em' }}>404</p>
+      <p style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(80px,15vw,120px)', color: '#E6DDD3', fontWeight: 400, lineHeight: 1, marginBottom: '8px', letterSpacing: '-0.04em' }}>404</p>
       <div style={{ width: '40px', height: '1px', background: '#B8895A', margin: '0 auto 24px' }} />
-      <h1 style={{ fontFamily: "\'Playfair Display\',serif", fontSize: '28px', color: '#16100C', fontWeight: 400, marginBottom: '12px' }}>Page Not Found</h1>
-      <p style={{ fontFamily: "\'DM Sans\',sans-serif", fontSize: '14px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, marginBottom: '36px' }}>The page you are looking for does not exist or has been moved.</p>
+      <h1 style={{ fontFamily: 'Playfair Display,serif', fontSize: '28px', color: '#16100C', fontWeight: 400, marginBottom: '12px' }}>Page Not Found</h1>
+      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '14px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, marginBottom: '36px' }}>The page you are looking for does not exist or has been moved.</p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <a href="/" style={{ fontFamily: "\'DM Sans\',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: '#16100C', color: '#FAF8F5', padding: '13px 32px', textDecoration: 'none' }}>Go Home</a>
-        <a href="/products" style={{ fontFamily: "\'DM Sans\',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: 'transparent', color: '#16100C', border: '1px solid #16100C', padding: '13px 32px', textDecoration: 'none' }}>Browse Products</a>
+        <a href="/" style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: '#16100C', color: '#FAF8F5', padding: '13px 32px', textDecoration: 'none' }}>Go Home</a>
+        <a href="/products" style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', background: 'transparent', color: '#16100C', border: '1px solid #16100C', padding: '13px 32px', textDecoration: 'none' }}>Browse Products</a>
       </div>
     </div>
   </div>
@@ -103,7 +104,7 @@ const UserLayout = ({ children }) => (
 
 const toastOptions = {
   duration: 3000,
-  style: { fontFamily: "\'DM Sans\',\'Inter\',sans-serif", fontSize: '13px', fontWeight: 300, background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #B8895A', borderRadius: 0, padding: '14px 20px', boxShadow: '0 8px 32px rgba(22,16,12,0.2)', letterSpacing: '0.01em', minWidth: '280px' },
+  style: { fontFamily: 'DM Sans,Inter,sans-serif', fontSize: '13px', fontWeight: 300, background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #B8895A', borderRadius: 0, padding: '14px 20px', boxShadow: '0 8px 32px rgba(22,16,12,0.2)', letterSpacing: '0.01em', minWidth: '280px' },
   success: { style: { background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #4A7A57' }, iconTheme: { primary: '#4A7A57', secondary: '#FAF8F5' } },
   error:   { style: { background: '#16100C', color: '#FAF8F5', borderLeft: '3px solid #963838' }, iconTheme: { primary: '#963838', secondary: '#FAF8F5' } },
 }
@@ -125,7 +126,10 @@ function AppRoutes() {
           <Route path="/skin-analysis"         element={<UserLayout><SkinAnalysis /></UserLayout>} />
           <Route path="/products"              element={<UserLayout><Products /></UserLayout>} />
           <Route path="/products/:slug"        element={<UserLayout><ProductDetail /></UserLayout>} />
+
+          {/* ── Payment routes ── */}
           <Route path="/payment/esewa/success" element={<UserLayout><EsewaSuccess /></UserLayout>} />
+          <Route path="/payment/esewa/failure" element={<UserLayout><EsewaFailure /></UserLayout>} />
 
           {/* ── Protected ── */}
           <Route path="/profile"     element={<ProtectedRoute><UserLayout><Profile /></UserLayout></ProtectedRoute>} />
