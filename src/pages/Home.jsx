@@ -199,16 +199,7 @@ export default function Home() {
                     </Link>
                   </div>
                 </Reveal>
-                <Reveal delay={4}>
-                  <div className="home-stats" style={{ marginTop: '40px', paddingTop: '28px', borderTop: '1px solid #E6DDD3' }}>
-                    {[{ value: '500+', label: 'Products' }, { value: '96%', label: 'AI Accuracy' }, { value: '30s', label: 'Analysis Time' }].map(({ value, label }) => (
-                      <div key={label}>
-                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(18px,2.5vw,22px)', color: '#16100C', fontWeight: 400, lineHeight: 1 }}>{value}</p>
-                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.14em', marginTop: '4px', fontWeight: 400 }}>{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </Reveal>
+                {/* Stats section removed - project appropriate content */}
               </div>
 
               {/* Right panel — hidden on mobile */}
@@ -238,10 +229,10 @@ export default function Home() {
           <div className="container-luxury">
             <div className="home-trust-grid">
               {[
-                { icon: <Truck       size={17} strokeWidth={1.5} />, label: 'Free Shipping above Rs. 2000' },
-                { icon: <RefreshCw   size={17} strokeWidth={1.5} />, label: 'Easy 30-Day Returns'          },
-                { icon: <ShieldCheck size={17} strokeWidth={1.5} />, label: '100% Genuine Products'        },
-                { icon: <FlaskConical size={17} strokeWidth={1.5} />, label: 'Clinically Formulated'       },
+                { icon: <Truck       size={17} strokeWidth={1.5} />, label: 'Fast Delivery' },
+                { icon: <RefreshCw   size={17} strokeWidth={1.5} />, label: 'Easy Returns' },
+                { icon: <ShieldCheck size={17} strokeWidth={1.5} />, label: 'Quality Products' },
+                { icon: <FlaskConical size={17} strokeWidth={1.5} />, label: 'Student Project' },
               ].map(({ icon, label }) => (
                 <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
                   <span style={{ color: '#B8895A' }}>{icon}</span>

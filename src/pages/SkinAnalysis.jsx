@@ -1,5 +1,5 @@
-// src/pages/SkinAnalysis.jsx — Mobile Responsive + SEO
-import React, { useState, useRef } from 'react'
+// src/pages/SkinAnalysis.jsx — Mobile Responsive + Webcam Feature Added
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPersonalizedTips, getProductsForStep } from '../utils/skinTips'
 import { useAuth } from '../context/AuthContext'
@@ -12,7 +12,8 @@ import {
   Upload, ShoppingBag, Zap, FlaskConical,
   CheckCircle, AlertCircle, RotateCcw, Package,
   ChevronRight, Droplets, Leaf, Sun, Camera,
-  UserX, Users, ImageOff, Lightbulb,
+  UserX, Users, ImageOff, Lightbulb, Video,
+  VideoOff, RefreshCw, X,
 } from 'lucide-react'
 
 const SKIN_CSS = `
@@ -44,12 +45,138 @@ const SKIN_CSS = `
     grid-template-columns: 1fr 1fr;
     gap: 14px;
   }
+  .upload-tab-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #AA9688;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .upload-tab-btn.active {
+    color: #B8895A;
+    border-bottom-color: #B8895A;
+  }
+  .upload-tab-btn:hover {
+    color: #B8895A;
+  }
+  .webcam-container {
+    position: relative;
+    background: #16100C;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .webcam-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+    display: block;
+  }
+  .webcam-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .face-guide {
+    width: 200px;
+    height: 240px;
+    border: 2px solid rgba(184,137,90,0.7);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+  }
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(184,137,90,0.7); }
+    50%       { border-color: rgba(184,137,90,1);   }
+  }
+  .face-guide.ready {
+    animation: pulse-border 1.5s ease-in-out infinite;
+  }
+  .webcam-capture-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #B8895A;
+    border: 3px solid #FFFFFF;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .webcam-capture-btn:hover {
+    background: #A07040;
+    transform: translateX(-50%) scale(1.05);
+  }
+  .webcam-capture-btn:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+  .webcam-flip-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.2s ease;
+  }
+  .webcam-flip-btn:hover {
+    background: rgba(0,0,0,0.7);
+  }
+  .webcam-close-btn {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: all 0.2s ease;
+  }
+  .webcam-close-btn:hover {
+    background: rgba(150,56,56,0.7);
+  }
   @media (max-width: 768px) {
     .skin-hero-grid { grid-template-columns: 1fr; gap: 24px; }
     .skin-legend { display: none; }
     .skin-how-grid { grid-template-columns: 1fr; }
     .skin-tips-grid { grid-template-columns: 1fr; }
     .skin-photo-tips { grid-template-columns: 1fr; }
+    .face-guide { width: 160px; height: 200px; }
   }
   @media (max-width: 480px) {
     .skin-how-grid { grid-template-columns: 1fr; }
@@ -66,77 +193,41 @@ const SKIN_CONFIG = {
 const getSkinConfig = (type) => SKIN_CONFIG[type] || SKIN_CONFIG.normal
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: <Camera       size={18} strokeWidth={1.5} />, title: 'Upload Photo',     desc: 'Take a clear selfie in natural lighting — no filters'  },
-  { step: '02', icon: <FlaskConical size={18} strokeWidth={1.5} />, title: 'AI Analyzes',      desc: 'Our model detects your skin type instantly'             },
-  { step: '03', icon: <ShoppingBag  size={18} strokeWidth={1.5} />, title: 'Get Your Results', desc: 'Personalized tips and matched product recommendations'  },
+  { step: '01', icon: <Camera       size={18} strokeWidth={1.5} />, title: 'Upload or Capture', desc: 'Upload a photo or use your live camera'              },
+  { step: '02', icon: <FlaskConical size={18} strokeWidth={1.5} />, title: 'AI Analyzes',        desc: 'Our model detects your skin type instantly'         },
+  { step: '03', icon: <ShoppingBag  size={18} strokeWidth={1.5} />, title: 'Get Your Results',   desc: 'Personalized tips and matched product recommendations' },
 ]
 
-// ── Error config per error_code from backend ──────────────
 const ERROR_CONFIG = {
   NO_FACE_DETECTED: {
     icon:  <UserX size={20} strokeWidth={1.5} />,
-    color: '#963838',
-    bg:    '#FCF3F3',
-    border:'#F5C4C4',
+    color: '#963838', bg: '#FCF3F3', border:'#F5C4C4',
     title: 'No face detected',
-    tips: [
-      'Make sure your face is clearly visible',
-      'Face the camera directly (front-facing)',
-      'Ensure good lighting — avoid dark photos',
-      'Remove sunglasses, masks, or face coverings',
-    ],
+    tips: ['Make sure your face is clearly visible','Face the camera directly (front-facing)','Ensure good lighting — avoid dark photos','Remove sunglasses, masks, or face coverings'],
   },
   MULTIPLE_FACES: {
     icon:  <Users size={20} strokeWidth={1.5} />,
-    color: '#89670F',
-    bg:    '#FFFBF0',
-    border:'#F5DFA0',
+    color: '#89670F', bg: '#FFFBF0', border:'#F5DFA0',
     title: 'Multiple faces detected',
-    tips: [
-      'Upload a photo with only your face',
-      'Make sure no other people are in the frame',
-      'Crop the photo to show just your face',
-    ],
+    tips: ['Upload a photo with only your face','Make sure no other people are in the frame','Crop the photo to show just your face'],
   },
   LOW_CONFIDENCE: {
     icon:  <Lightbulb size={20} strokeWidth={1.5} />,
-    color: '#89670F',
-    bg:    '#FFFBF0',
-    border:'#F5DFA0',
+    color: '#89670F', bg: '#FFFBF0', border:'#F5DFA0',
     title: 'Image quality too low',
-    tips: [
-      'Use natural or bright lighting',
-      'Avoid heavy filters or editing',
-      'Make sure the photo is sharp and in focus',
-      'Remove heavy makeup if possible',
-      'Take the photo in front of a plain background',
-    ],
+    tips: ['Use natural or bright lighting','Avoid heavy filters or editing','Make sure the photo is sharp and in focus','Remove heavy makeup if possible','Take the photo in front of a plain background'],
   },
   INVALID_IMAGE: {
     icon:  <ImageOff size={20} strokeWidth={1.5} />,
-    color: '#963838',
-    bg:    '#FCF3F3',
-    border:'#F5C4C4',
+    color: '#963838', bg: '#FCF3F3', border:'#F5C4C4',
     title: 'Invalid image file',
-    tips: [
-      'Upload a valid JPG, PNG, or WEBP file',
-      'Make sure the file is not corrupted',
-      'Try taking a new photo and uploading again',
-    ],
+    tips: ['Upload a valid JPG, PNG, or WEBP file','Make sure the file is not corrupted','Try taking a new photo and uploading again'],
   },
   IMAGE_TOO_BRIGHT: {
     icon:  <Sun size={20} strokeWidth={1.5} />,
-    color: '#89670F',
-    bg:    '#FFFBF0',
-    border:'#F5DFA0',
+    color: '#89670F', bg: '#FFFBF0', border:'#F5DFA0',
     title: 'Image too bright or overexposed',
-    tips: [
-      'Avoid taking the photo in direct sunlight',
-      'Turn off camera flash completely',
-      'Move to a shaded area with natural indirect light',
-      'Use indoor lighting — a well-lit room works best',
-      'Reduce screen brightness if using front camera',
-    ],
+    tips: ['Avoid taking the photo in direct sunlight','Turn off camera flash completely','Move to a shaded area with natural indirect light','Use indoor lighting — a well-lit room works best'],
   },
 }
 
@@ -149,38 +240,28 @@ const LuxSelect = ({ value, onChange, children }) => (
   </div>
 )
 
-// ── Smart Error Block ─────────────────────────────────────
 const ErrorBlock = ({ errorCode, errorMsg }) => {
   const cfg = ERROR_CONFIG[errorCode]
-
-  // Unknown error — show simple alert
   if (!cfg) return (
     <div className="alert-error" style={{ marginBottom: '16px' }}>
       <AlertCircle size={13} strokeWidth={1.5} style={{ flexShrink: 0 }} />
       {errorMsg || 'Analysis failed. Please try again.'}
     </div>
   )
-
   return (
     <div style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, padding: '16px 18px', marginBottom: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
         <span style={{ color: cfg.color, flexShrink: 0 }}>{cfg.icon}</span>
-        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '16px', color: '#16100C', fontWeight: 400 }}>
-          {cfg.title}
-        </p>
+        <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '16px', color: '#16100C', fontWeight: 400 }}>{cfg.title}</p>
       </div>
-      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#7B6458', fontWeight: 300, marginBottom: '12px', lineHeight: 1.6 }}>
-        {errorMsg}
-      </p>
+      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12.5px', color: '#7B6458', fontWeight: 300, marginBottom: '12px', lineHeight: 1.6 }}>{errorMsg}</p>
       <div style={{ borderTop: `1px solid ${cfg.border}`, paddingTop: '10px' }}>
-        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.color, marginBottom: '8px', fontWeight: 400 }}>
-          How to fix this
-        </p>
+        <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.color, marginBottom: '8px', fontWeight: 400 }}>How to fix this</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
           {cfg.tips.map((tip, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
               <CheckCircle size={11} strokeWidth={1.5} style={{ color: cfg.color, flexShrink: 0, marginTop: '2px' }} />
-              <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
+              <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
             </div>
           ))}
         </div>
@@ -189,11 +270,202 @@ const ErrorBlock = ({ errorCode, errorMsg }) => {
   )
 }
 
+// ════════════════════════════════════════════════════════════
+// WEBCAM COMPONENT
+// ════════════════════════════════════════════════════════════
+const WebcamCapture = ({ onCapture, onClose }) => {
+  const videoRef        = useRef(null)
+  const canvasRef       = useRef(null)
+  const streamRef       = useRef(null)
+  const [ready, setReady]           = useState(false)
+  const [facingMode, setFacingMode] = useState('user')
+  const [countdown, setCountdown]   = useState(null)
+  const [error, setError]           = useState('')
+
+  const startCamera = useCallback(async (mode = 'user') => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop())
+      }
+      setReady(false)
+      setError('')
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play()
+          setReady(true)
+        }
+      }
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        setError('Camera access denied. Please allow camera permission and try again.')
+      } else if (err.name === 'NotFoundError') {
+        setError('No camera found on this device.')
+      } else {
+        setError('Could not start camera. Please try uploading a photo instead.')
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    startCamera(facingMode)
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop())
+      }
+    }
+  }, [facingMode, startCamera])
+
+  const flipCamera = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user')
+  }
+
+  const startCountdown = () => {
+    let count = 3
+    setCountdown(count)
+    const interval = setInterval(() => {
+      count -= 1
+      if (count === 0) {
+        clearInterval(interval)
+        setCountdown(null)
+        capturePhoto()
+      } else {
+        setCountdown(count)
+      }
+    }, 1000)
+  }
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return
+    const video  = videoRef.current
+    const canvas = canvasRef.current
+    canvas.width  = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    // Mirror the captured image to match what user sees
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(video, 0, 0)
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], 'webcam-capture.jpg', { type: 'image/jpeg' })
+        onCapture(file)
+      }
+    }, 'image/jpeg', 0.92)
+    // Stop camera
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+    }
+  }
+
+  return (
+    <div style={{ marginTop: '8px' }}>
+      {error ? (
+        <div style={{ background: '#FCF3F3', border: '1px solid #F5C4C4', padding: '20px', textAlign: 'center' }}>
+          <VideoOff size={32} strokeWidth={1.5} style={{ color: '#963838', margin: '0 auto 12px' }} />
+          <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '13px', color: '#963838', marginBottom: '12px' }}>{error}</p>
+          <button onClick={onClose} style={{ background: '#1A0F0A', color: '#fff', border: 'none', padding: '8px 20px', fontFamily: 'Inter,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}>
+            Upload Photo Instead
+          </button>
+        </div>
+      ) : (
+        <div>
+          {/* Camera viewfinder */}
+          <div className="webcam-container" style={{ height: '320px', background: '#16100C' }}>
+            <video ref={videoRef} className="webcam-video" autoPlay playsInline muted />
+
+            {/* Face guide oval */}
+            <div className="webcam-overlay">
+              <div className={`face-guide ${ready ? 'ready' : ''}`} />
+            </div>
+
+            {/* Countdown overlay */}
+            {countdown !== null && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0,0,0,0.4)',
+                zIndex: 10,
+              }}>
+                <span style={{
+                  fontFamily: 'Playfair Display,serif',
+                  fontSize: '96px', fontWeight: 400,
+                  color: '#B8895A',
+                  textShadow: '0 2px 20px rgba(0,0,0,0.5)',
+                }}>
+                  {countdown}
+                </span>
+              </div>
+            )}
+
+            {/* Close button */}
+            <button className="webcam-close-btn" onClick={onClose} title="Close camera">
+              <X size={16} strokeWidth={2} />
+            </button>
+
+            {/* Flip camera button */}
+            <button className="webcam-flip-btn" onClick={flipCamera} title="Flip camera">
+              <RefreshCw size={16} strokeWidth={1.5} />
+            </button>
+
+            {/* Capture button */}
+            {ready && countdown === null && (
+              <button className="webcam-capture-btn" onClick={startCountdown} title="Take photo">
+                <Camera size={24} strokeWidth={1.5} color="#FFFFFF" />
+              </button>
+            )}
+
+            {/* Loading indicator */}
+            {!ready && !error && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                <div style={{ width: '32px', height: '32px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
+                <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Starting camera...</p>
+              </div>
+            )}
+          </div>
+
+          {/* Camera tips below viewfinder */}
+          {ready && (
+            <div style={{ background: '#FAF8F5', border: '1px solid #E6DDD3', borderTop: 'none', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              {[
+                'Center your face in the oval',
+                'Good lighting — face a window',
+                'Hold camera steady',
+              ].map((tip, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <CheckCircle size={10} strokeWidth={1.5} style={{ color: '#B8895A', flexShrink: 0 }} />
+                  <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
+                </div>
+              ))}
+              <span style={{ marginLeft: 'auto', fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#AA9688', fontStyle: 'italic' }}>
+                3-second timer before capture
+              </span>
+            </div>
+          )}
+
+          {/* Hidden canvas for capturing */}
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════
 export default function SkinAnalysis() {
   const { user }           = useAuth()
   const { fetchCartCount } = useCart()
   const navigate           = useNavigate()
 
+  // ── Upload state ──
   const [image,     setImage]     = useState(null)
   const [preview,   setPreview]   = useState(null)
   const [age,       setAge]       = useState('')
@@ -204,6 +476,12 @@ export default function SkinAnalysis() {
   const [errorCode, setErrorCode] = useState('')
   const [addingId,  setAddingId]  = useState(null)
   const [dragOver,  setDragOver]  = useState(false)
+
+  // ── Tab state: 'upload' | 'camera' ──
+  const [activeTab, setActiveTab]       = useState('upload')
+  const [showWebcam, setShowWebcam]     = useState(false)
+  const [captureSource, setCaptureSource] = useState('') // 'upload' | 'camera'
+
   const fileRef = useRef()
 
   const handleImage = (file) => {
@@ -212,36 +490,47 @@ export default function SkinAnalysis() {
       setErrorCode('INVALID_IMAGE')
       return
     }
-    setImage(file); setPreview(URL.createObjectURL(file))
+    setImage(file)
+    setPreview(URL.createObjectURL(file))
     setResult(null); setError(''); setErrorCode('')
+  }
+
+  const handleWebcamCapture = (file) => {
+    setShowWebcam(false)
+    setCaptureSource('camera')
+    handleImage(file)
+    setActiveTab('upload') // switch to upload tab to show preview
+  }
+
+  const openWebcam = () => {
+    setShowWebcam(true)
+    setError(''); setErrorCode('')
+  }
+
+  const closeWebcam = () => {
+    setShowWebcam(false)
   }
 
   const handleDrop = (e) => {
     e.preventDefault(); setDragOver(false)
     const file = e.dataTransfer.files[0]
-    if (file) handleImage(file)
+    if (file) { setCaptureSource('upload'); handleImage(file) }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!image)  { setError('Please upload a face photo.'); setErrorCode(''); return }
-    if (!age)    { setError('Please enter your age.');      setErrorCode(''); return }
-    if (!gender) { setError('Please select your gender.');  setErrorCode(''); return }
+    if (!image)  { setError('Please upload or capture a face photo.'); setErrorCode(''); return }
+    if (!age)    { setError('Please enter your age.');                  setErrorCode(''); return }
+    if (!gender) { setError('Please select your gender.');             setErrorCode(''); return }
 
     setLoading(true); setError(''); setErrorCode(''); setResult(null)
 
     const ageNum = parseInt(age)
     if (isNaN(ageNum) || ageNum < 13) {
-      setError('Age must be at least 13 years old.')
-      setErrorCode('')
-      setLoading(false)
-      return
+      setError('Age must be at least 13 years old.'); setErrorCode(''); setLoading(false); return
     }
     if (ageNum > 80) {
-      setError('Age must be 80 or below.')
-      setErrorCode('')
-      setLoading(false)
-      return
+      setError('Age must be 80 or below.'); setErrorCode(''); setLoading(false); return
     }
 
     try {
@@ -258,11 +547,10 @@ export default function SkinAnalysis() {
       setTimeout(() => document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth' }), 100)
 
     } catch (err) {
-      const data      = err.response?.data
-      const code      = data?.error_code || ''
-      const message   = data?.error || 'Analysis failed. Try a clearer, well-lit photo.'
-      setErrorCode(code)
-      setError(message)
+      const data    = err.response?.data
+      const code    = data?.error_code || ''
+      const message = data?.error || 'Analysis failed. Try a clearer, well-lit photo.'
+      setErrorCode(code); setError(message)
     } finally {
       setLoading(false)
     }
@@ -287,18 +575,19 @@ export default function SkinAnalysis() {
   const resetAnalysis = () => {
     setResult(null); setImage(null); setPreview(null)
     setAge(''); setGender(''); setError(''); setErrorCode('')
+    setCaptureSource(''); setShowWebcam(false); setActiveTab('upload')
   }
 
   const cfg = result ? getSkinConfig(result.analysis.skin_type) : null
 
   return (
     <>
-      <SEO title="Free Skin Analysis" description="Upload a photo and get your AI skin type analysis in 30 seconds. Free, personalized skincare recommendations." url="/skin-analysis" />
+      <SEO title="Free Skin Analysis" description="Upload a photo or use your camera for AI skin type analysis in 30 seconds. Free, personalized skincare recommendations." url="/skin-analysis" />
       <style>{SKIN_CSS}</style>
 
       <div style={{ background: '#FAF8F5', minHeight: '100vh' }}>
 
-        {/* Hero — changed from #16100C to rgb(244, 237, 228) */}
+        {/* ── Hero ── */}
         <section style={{ background: 'rgb(244, 237, 228)', padding: 'clamp(40px,6vw,64px) 0', position: 'relative', overflow: 'hidden', borderBottom: '1px solid #E6DDD3' }}>
           <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '380px', height: '380px', borderRadius: '50%', border: '1px solid rgba(184,137,90,0.15)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(184,137,90,0.06) 1px, transparent 1px)', backgroundSize: '32px 32px', pointerEvents: 'none' }} />
@@ -306,18 +595,18 @@ export default function SkinAnalysis() {
           <div className="container-luxury" style={{ position: 'relative', zIndex: 1 }}>
             <div className="skin-hero-grid">
               <div>
-                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 400 }}>
+                <div style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.22em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 400 }}>
                   <FlaskConical size={14} strokeWidth={1.5} /> AI-Powered · Free to use
                 </div>
-                <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(28px,4vw,50px)', color: '#16100C', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '16px' }}>
+                <h1 style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(28px,4vw,50px)', color: '#16100C', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: '16px' }}>
                   Discover Your<br /><em style={{ color: '#B8895A' }}>Skin Type</em>
                 </h1>
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '14px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, maxWidth: '420px', marginBottom: '28px' }}>
-                  Upload a face photo — our AI analyzes your skin in seconds and recommends products that genuinely work for your skin type.
+                <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '14px', color: '#7B6458', lineHeight: 1.7, fontWeight: 300, maxWidth: '420px', marginBottom: '28px' }}>
+                  Upload a face photo or use your live camera — our AI analyzes your skin in seconds and recommends products that genuinely work for your skin type.
                 </p>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {['Photo not stored after analysis','Results in seconds','Personalized picks'].map((f,i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', border: '1px solid rgba(184,137,90,0.35)', background: 'rgba(255,255,255,0.5)', fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', color: '#7B6458', fontWeight: 300 }}>
+                  {['Photo not stored after analysis','Results in seconds','Live camera supported','Personalized picks'].map((f,i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', border: '1px solid rgba(184,137,90,0.35)', background: 'rgba(255,255,255,0.5)', fontFamily: 'DM Sans,sans-serif', fontSize: '11.5px', color: '#7B6458', fontWeight: 300 }}>
                       <CheckCircle size={11} strokeWidth={1.5} style={{ color: '#B8895A' }} /> {f}
                     </div>
                   ))}
@@ -326,11 +615,11 @@ export default function SkinAnalysis() {
 
               {/* Skin type legend */}
               <div className="skin-legend" style={{ flexDirection: 'column', gap: '8px', width: '200px' }}>
-                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#7B6458', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: '6px', fontWeight: 400 }}>Skin Types We Detect</p>
+                <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#7B6458', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: '6px', fontWeight: 400 }}>Skin Types We Detect</p>
                 {Object.entries(SKIN_CONFIG).map(([key, val]) => (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', border: '1px solid rgba(184,137,90,0.25)', background: 'rgba(255,255,255,0.5)' }}>
                     <span style={{ color: val.accent }}>{val.icon}</span>
-                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#5A4A3A', fontWeight: 300 }}>{val.label}</span>
+                    <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12.5px', color: '#5A4A3A', fontWeight: 300 }}>{val.label}</span>
                   </div>
                 ))}
               </div>
@@ -345,76 +634,138 @@ export default function SkinAnalysis() {
             <div style={{ marginBottom: 'clamp(32px,5vw,56px)' }}>
               <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 <div className="section-eyebrow" style={{ justifyContent: 'center' }}>Simple Process</div>
-                <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(20px,2.5vw,26px)', color: '#16100C', fontWeight: 400 }}>How It Works</h2>
+                <h2 style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(20px,2.5vw,26px)', color: '#16100C', fontWeight: 400 }}>How It Works</h2>
               </div>
               <div className="skin-how-grid">
                 {HOW_IT_WORKS.map(s => (
                   <div key={s.step} style={{ background: '#FFFFFF', padding: 'clamp(20px,3vw,32px) clamp(14px,2vw,24px)', textAlign: 'center' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '1px solid #B8895A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B8895A', margin: '0 auto 16px' }}>{s.icon}</div>
-                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '9.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: '6px', fontWeight: 400 }}>Step {s.step}</p>
-                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(13px,1.8vw,15px)', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>{s.title}</p>
-                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300, lineHeight: 1.6 }}>{s.desc}</p>
+                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '9.5px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: '6px', fontWeight: 400 }}>Step {s.step}</p>
+                    <p style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(13px,1.8vw,15px)', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>{s.title}</p>
+                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', fontWeight: 300, lineHeight: 1.6 }}>{s.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Upload form */}
+          {/* ── Upload / Camera Form ── */}
           {!result && (
             <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', maxWidth: '640px', margin: '0 auto' }}>
               <div style={{ height: '2px', background: 'linear-gradient(to right,#B8895A,#D4A96A,#B8895A)' }} />
+
+              {/* Form header */}
               <div style={{ padding: 'clamp(16px,3vw,28px) clamp(16px,3vw,32px)', borderBottom: '1px solid #EEE7DF', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '40px', height: '40px', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B8895A', background: '#FDFAF7', flexShrink: 0 }}>
                   <FlaskConical size={18} strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Skin Analysis</h2>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300, marginTop: '2px' }}>Upload a clear face photo for best results</p>
+                  <h2 style={{ fontFamily: 'Playfair Display,serif', fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Skin Analysis</h2>
+                  <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', fontWeight: 300, marginTop: '2px' }}>Upload a photo or use your live camera</p>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} style={{ padding: 'clamp(16px,3vw,32px)' }}>
 
-                {/* Upload zone */}
+                {/* ── PHOTO INPUT SECTION ── */}
                 <div style={{ marginBottom: '20px' }}>
-                  <label className="input-label">Face Photo <span style={{ color: '#963838' }}>*</span></label>
-                  <div
-                    onClick={() => !preview && fileRef.current.click()}
-                    onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    style={{ border: `1.5px dashed ${dragOver ? '#B8895A' : preview ? '#B8895A' : '#E6DDD3'}`, background: dragOver ? '#FFFCF9' : preview ? '#FDFAF7' : '#FAF8F5', cursor: preview ? 'default' : 'pointer', transition: 'all 0.2s', marginTop: '8px' }}
-                  >
-                    {preview ? (
-                      <div style={{ padding: 'clamp(12px,2vw,20px)', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                        <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <img src={preview} alt="preview" style={{ width: '88px', height: '88px', objectFit: 'cover', border: '1px solid #E6DDD3', display: 'block' }} />
-                          <div style={{ position: 'absolute', top: '-8px', right: '-8px', width: '22px', height: '22px', borderRadius: '50%', background: '#4A7A57', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <CheckCircle size={12} strokeWidth={2} style={{ color: '#FFFFFF' }} />
+                  <label className="input-label">
+                    Face Photo <span style={{ color: '#963838' }}>*</span>
+                  </label>
+
+                  {/* Tab switcher: Upload | Camera */}
+                  {!preview && (
+                    <div style={{ display: 'flex', borderBottom: '1px solid #E6DDD3', marginTop: '8px', marginBottom: '0' }}>
+                      <button
+                        type="button"
+                        className={`upload-tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('upload'); setShowWebcam(false) }}
+                      >
+                        <Upload size={14} strokeWidth={1.5} />
+                        Upload Photo
+                      </button>
+                      <button
+                        type="button"
+                        className={`upload-tab-btn ${activeTab === 'camera' ? 'active' : ''}`}
+                        onClick={() => { setActiveTab('camera'); setShowWebcam(true) }}
+                      >
+                        <Video size={14} strokeWidth={1.5} />
+                        Use Camera
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── UPLOAD TAB ── */}
+                  {(activeTab === 'upload' || preview) && !showWebcam && (
+                    <>
+                      <div
+                        onClick={() => !preview && fileRef.current.click()}
+                        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={handleDrop}
+                        style={{
+                          border: `1.5px dashed ${dragOver ? '#B8895A' : preview ? '#B8895A' : '#E6DDD3'}`,
+                          background: dragOver ? '#FFFCF9' : preview ? '#FDFAF7' : '#FAF8F5',
+                          cursor: preview ? 'default' : 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {preview ? (
+                          <div style={{ padding: 'clamp(12px,2vw,20px)', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                            <div style={{ position: 'relative', flexShrink: 0 }}>
+                              <img src={preview} alt="preview" style={{ width: '88px', height: '88px', objectFit: 'cover', border: '1px solid #E6DDD3', display: 'block' }} />
+                              <div style={{ position: 'absolute', top: '-8px', right: '-8px', width: '22px', height: '22px', borderRadius: '50%', background: '#4A7A57', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <CheckCircle size={12} strokeWidth={2} style={{ color: '#FFFFFF' }} />
+                              </div>
+                            </div>
+                            <div>
+                              <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '15px', color: '#16100C', fontWeight: 400, marginBottom: '4px' }}>
+                                {captureSource === 'camera' ? 'Photo captured' : 'Photo uploaded'}
+                              </p>
+                              <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11.5px', color: '#AA9688', fontWeight: 300, marginBottom: '12px' }}>
+                                {captureSource === 'camera' ? 'Taken with your camera' : image?.name}
+                              </p>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                {captureSource === 'camera' ? (
+                                  <button type="button" onClick={() => { setImage(null); setPreview(null); setShowWebcam(true); setActiveTab('camera') }}
+                                    style={{ background: 'none', border: '1px solid #E6DDD3', padding: '5px 12px', fontFamily: 'Inter,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7B6458', cursor: 'pointer' }}>
+                                    Retake
+                                  </button>
+                                ) : (
+                                  <button type="button" onClick={() => fileRef.current.click()}
+                                    style={{ background: 'none', border: '1px solid #E6DDD3', padding: '5px 12px', fontFamily: 'Inter,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7B6458', cursor: 'pointer' }}>
+                                    Change
+                                  </button>
+                                )}
+                                <button type="button" onClick={() => { setImage(null); setPreview(null); setError(''); setErrorCode(''); setCaptureSource('') }}
+                                  style={{ background: 'none', border: '1px solid #E6DDD3', padding: '5px 12px', fontFamily: 'Inter,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#963838', cursor: 'pointer' }}>
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '15px', color: '#16100C', fontWeight: 400, marginBottom: '4px' }}>Photo uploaded</p>
-                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', color: '#AA9688', fontWeight: 300, marginBottom: '12px' }}>{image?.name}</p>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="button" onClick={() => fileRef.current.click()} style={{ background: 'none', border: '1px solid #E6DDD3', padding: '5px 12px', fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7B6458', cursor: 'pointer', fontWeight: 400 }}>Change</button>
-                            <button type="button" onClick={() => { setImage(null); setPreview(null); setError(''); setErrorCode('') }} style={{ background: 'none', border: '1px solid #E6DDD3', padding: '5px 12px', fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#963838', cursor: 'pointer', fontWeight: 400 }}>Remove</button>
+                        ) : (
+                          <div style={{ padding: 'clamp(28px,5vw,48px) 24px', textAlign: 'center' }}>
+                            <div style={{ width: '56px', height: '56px', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#D4C4B0', background: '#FFFFFF' }}>
+                              <Upload size={22} strokeWidth={1.5} />
+                            </div>
+                            <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '16px', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>Drop your photo here</p>
+                            <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', fontWeight: 300, marginBottom: '12px' }}>or click to browse files</p>
+                            <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.12em', border: '1px solid #E6DDD3', padding: '4px 12px', background: '#FFFFFF' }}>JPG · PNG · WEBP</span>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    ) : (
-                      <div style={{ padding: 'clamp(28px,5vw,48px) 24px', textAlign: 'center' }}>
-                        <div style={{ width: '56px', height: '56px', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: '#D4C4B0', background: '#FFFFFF' }}>
-                          <Upload size={22} strokeWidth={1.5} />
-                        </div>
-                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '16px', color: '#16100C', fontWeight: 400, marginBottom: '6px' }}>Drop your photo here</p>
-                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300, marginBottom: '12px' }}>or click to browse files</p>
-                        <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#AA9688', textTransform: 'uppercase', letterSpacing: '0.12em', border: '1px solid #E6DDD3', padding: '4px 12px', background: '#FFFFFF' }}>JPG · PNG · WEBP</span>
-                      </div>
-                    )}
-                  </div>
-                  <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => e.target.files[0] && handleImage(e.target.files[0])} style={{ display: 'none' }} />
+                      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { if (e.target.files[0]) { setCaptureSource('upload'); handleImage(e.target.files[0]) } }} style={{ display: 'none' }} />
+                    </>
+                  )}
+
+                  {/* ── CAMERA TAB ── */}
+                  {activeTab === 'camera' && showWebcam && !preview && (
+                    <WebcamCapture
+                      onCapture={handleWebcamCapture}
+                      onClose={closeWebcam}
+                    />
+                  )}
                 </div>
 
                 {/* Age + Gender */}
@@ -438,21 +789,19 @@ export default function SkinAnalysis() {
 
                 {/* Photo tips */}
                 <div style={{ background: '#F4EDE4', border: '1px solid #E6DDD3', padding: '14px 16px', marginBottom: '20px' }}>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.16em', color: '#B8895A', marginBottom: '10px', fontWeight: 400 }}>Tips for best results</p>
+                  <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.16em', color: '#B8895A', marginBottom: '10px', fontWeight: 400 }}>Tips for best results</p>
                   <div className="skin-photo-tips">
                     {['Good lighting (natural or bright)','Face centered in frame','No heavy filters or makeup','Clear, sharp focus'].map((tip,i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <CheckCircle size={11} strokeWidth={1.5} style={{ color: '#B8895A', flexShrink: 0 }} />
-                        <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
+                        <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Smart Error Block */}
-                {error && (
-                  <ErrorBlock errorCode={errorCode} errorMsg={error} />
-                )}
+                {/* Error block */}
+                {error && <ErrorBlock errorCode={errorCode} errorMsg={error} />}
 
                 <button type="submit" disabled={loading} className="btn-primary"
                   style={{ width: '100%', justifyContent: 'center', gap: '10px', padding: '15px', opacity: loading ? 0.7 : 1 }}>
@@ -463,7 +812,7 @@ export default function SkinAnalysis() {
             </div>
           )}
 
-          {/* Results */}
+          {/* ── RESULTS (unchanged from original) ── */}
           {result && cfg && (
             <div id="result-section" style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
@@ -474,9 +823,9 @@ export default function SkinAnalysis() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
                     <div style={{ width: '56px', height: '56px', border: `1px solid ${cfg.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.accent, background: '#FFFFFF', flexShrink: 0 }}>{cfg.icon}</div>
                     <div style={{ flex: 1, minWidth: '200px' }}>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.18em', color: cfg.accent, marginBottom: '6px', fontWeight: 400 }}>Your Skin Type</p>
-                      <h2 style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(22px,3vw,28px)', color: '#16100C', fontWeight: 400, marginBottom: '8px' }}>{cfg.label}</h2>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13.5px', color: '#7B6458', lineHeight: 1.65, fontWeight: 300 }}>{cfg.desc}</p>
+                      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.18em', color: cfg.accent, marginBottom: '6px', fontWeight: 400 }}>Your Skin Type</p>
+                      <h2 style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(22px,3vw,28px)', color: '#16100C', fontWeight: 400, marginBottom: '8px' }}>{cfg.label}</h2>
+                      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '13.5px', color: '#7B6458', lineHeight: 1.65, fontWeight: 300 }}>{cfg.desc}</p>
                     </div>
                     {preview && <img src={preview} alt="Analyzed" style={{ width: '64px', height: '64px', objectFit: 'cover', border: `1px solid ${cfg.accent}`, display: 'block', flexShrink: 0 }} />}
                   </div>
@@ -486,60 +835,45 @@ export default function SkinAnalysis() {
               {/* Tips */}
               <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
                 <div style={{ padding: '18px 24px', borderBottom: '1px solid #EEE7DF' }}>
-                  <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Personalized Skincare Tips</h3>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
+                  <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Personalized Skincare Tips</h3>
+                  <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
                 </div>
                 <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {getPersonalizedTips(result.analysis.skin_type, result.analysis.age, result.analysis.gender).map((item, i) => {
-                    // ── Level 3: Find products matching this step's ingredients ──
-                    const allProducts = result.recommendations?.products || []
+                    const allProducts  = result.recommendations?.products || []
                     const stepProducts = getProductsForStep(item.ingredients || [], allProducts)
-
                     return (
                       <div key={i} style={{ border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
-
-                        {/* Step header */}
                         <div style={{ padding: '16px 16px 0 16px' }}>
-                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
-                          <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
+                          <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
+                          <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(150,56,56,0.05)', padding: '8px 10px', borderLeft: '2px solid #963838', marginBottom: stepProducts.length > 0 ? '14px' : '16px' }}>
                             <AlertCircle size={11} strokeWidth={1.5} style={{ color: '#963838', flexShrink: 0, marginTop: '2px' }} />
-                            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
+                            <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
                           </div>
                         </div>
-
-                        {/* ── Matched products for this step ── */}
                         {stepProducts.length > 0 && (
                           <div style={{ borderTop: '1px solid #EEE7DF', padding: '12px 16px', background: '#FFFFFF' }}>
-                            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.16em', color: cfg.accent, fontWeight: 500, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.16em', color: cfg.accent, fontWeight: 500, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <ShoppingBag size={10} strokeWidth={1.5} /> Matched products for this step
                             </p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                               {stepProducts.map((rec, j) => (
                                 <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
-                                  {/* Product image */}
                                   <div style={{ width: '44px', height: '44px', flexShrink: 0, background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {rec.product.image
-                                      ? <img src={getProductImageUrl(rec.product.image)} alt={rec.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                      : <Package size={16} strokeWidth={1} style={{ color: '#D4C4B0' }} />
-                                    }
+                                    {rec.product.image ? <img src={getProductImageUrl(rec.product.image)} alt={rec.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={16} strokeWidth={1} style={{ color: '#D4C4B0' }} />}
                                   </div>
-                                  {/* Product info */}
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 400 }}>{rec.product.brand}</p>
+                                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 400 }}>{rec.product.brand}</p>
                                     <a href={`/products/${rec.product.slug}`} style={{ textDecoration: 'none' }}>
-                                      <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '12px', color: '#16100C', fontWeight: 400, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.product.name}</p>
+                                      <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '12px', color: '#16100C', fontWeight: 400, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.product.name}</p>
                                     </a>
-                                    {/* Why matched — ingredient reasoning */}
-                                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', color: '#7B6458', fontStyle: 'italic', fontWeight: 300, marginTop: '2px', lineHeight: 1.4 }}>
-                                      {rec.reasoning?.split('.')[0]}.
-                                    </p>
+                                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#7B6458', fontStyle: 'italic', fontWeight: 300, marginTop: '2px', lineHeight: 1.4 }}>{rec.reasoning?.split('.')[0]}.</p>
                                   </div>
-                                  {/* Price + Cart */}
                                   <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                                    <p style={{ fontFamily: "'Playfair Display',serif", fontSize: '13px', color: '#16100C', fontWeight: 400 }}>Rs. {rec.product.discounted_price}</p>
+                                    <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '13px', color: '#16100C', fontWeight: 400 }}>Rs. {rec.product.discounted_price}</p>
                                     <button onClick={() => addToCart(rec.product.id)} disabled={addingId === rec.product.id}
-                                      style={{ marginTop: '4px', background: cfg.accent, color: '#FFFFFF', border: 'none', padding: '4px 10px', fontFamily: "'DM Sans',sans-serif", fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', opacity: addingId === rec.product.id ? 0.6 : 1 }}>
+                                      style={{ marginTop: '4px', background: cfg.accent, color: '#FFFFFF', border: 'none', padding: '4px 10px', fontFamily: 'DM Sans,sans-serif', fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', opacity: addingId === rec.product.id ? 0.6 : 1 }}>
                                       {addingId === rec.product.id ? '...' : 'Add'}
                                     </button>
                                   </div>
@@ -562,43 +896,36 @@ export default function SkinAnalysis() {
                   <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
                     <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                       <div>
-                        <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: '18px', color: '#16100C', fontWeight: 400, marginBottom: '3px' }}>Recommended For You</h3>
-                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>Top {top4.length} picks matched to your {cfg.label.toLowerCase()}</p>
+                        <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '18px', color: '#16100C', fontWeight: 400, marginBottom: '3px' }}>Recommended For You</h3>
+                        <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>Top {top4.length} picks matched to your {cfg.label.toLowerCase()}</p>
                       </div>
                       <a href={`/products?suitable_skin_type=${result.analysis.skin_type}`}
-                        style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: cfg.accent, textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '5px', borderBottom: `1px solid ${cfg.accent}`, paddingBottom: '1px', whiteSpace: 'nowrap' }}>
+                        style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: cfg.accent, textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.14em', fontWeight: 400, display: 'flex', alignItems: 'center', gap: '5px', borderBottom: `1px solid ${cfg.accent}`, paddingBottom: '1px', whiteSpace: 'nowrap' }}>
                         Shop all {cfg.label} products <ChevronRight size={12} strokeWidth={2} />
                       </a>
                     </div>
-
                     <div style={{ padding: 'clamp(14px,2vw,20px)', display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '1px', background: '#E6DDD3' }}>
                       {top4.map((item, i) => {
                         const inStock = item.product.stock > 0 || item.product.stock_status === 'In Stock'
                         return (
                           <div key={i} style={{ background: '#FFFFFF', padding: 'clamp(14px,2vw,18px)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
-                            <div style={{ position: 'absolute', top: '12px', left: '12px', background: cfg.accent, color: '#FFFFFF', fontFamily: "'DM Sans',sans-serif", fontSize: '9px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 8px', zIndex: 1 }}>
-                              {rankLabel[i]}
-                            </div>
+                            <div style={{ position: 'absolute', top: '12px', left: '12px', background: cfg.accent, color: '#FFFFFF', fontFamily: 'DM Sans,sans-serif', fontSize: '9px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 8px', zIndex: 1 }}>{rankLabel[i]}</div>
                             <a href={`/products/${item.product.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
                               <div style={{ width: '100%', aspectRatio: '1', background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                                 {item.product.image ? <img src={getProductImageUrl(item.product.image)} alt={item.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={32} strokeWidth={1} style={{ color: '#D4C4B0' }} />}
                               </div>
                             </a>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: '#B8895A', fontWeight: 400 }}>{item.product.brand}</p>
+                              <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.14em', color: '#B8895A', fontWeight: 400 }}>{item.product.brand}</p>
                               <a href={`/products/${item.product.slug}`} style={{ textDecoration: 'none' }}>
-                                <p style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(12px,1.8vw,14px)', color: '#16100C', fontWeight: 400, lineHeight: 1.35 }}>{item.product.name}</p>
+                                <p style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(12px,1.8vw,14px)', color: '#16100C', fontWeight: 400, lineHeight: 1.35 }}>{item.product.name}</p>
                               </a>
-                              {item.reasoning && (
-                                <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '10.5px', color: '#7B6458', lineHeight: 1.5, fontWeight: 300, fontStyle: 'italic' }}>
-                                  {item.reasoning.split('.')[0]}.
-                                </p>
-                              )}
+                              {item.reasoning && <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10.5px', color: '#7B6458', lineHeight: 1.5, fontWeight: 300, fontStyle: 'italic' }}>{item.reasoning.split('.')[0]}.</p>}
                               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap', marginTop: 'auto', paddingTop: '4px' }}>
-                                <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 'clamp(14px,2vw,17px)', color: '#16100C', fontWeight: 400 }}>Rs. {item.product.discounted_price}</span>
+                                <span style={{ fontFamily: 'Playfair Display,serif', fontSize: 'clamp(14px,2vw,17px)', color: '#16100C', fontWeight: 400 }}>Rs. {item.product.discounted_price}</span>
                                 {item.product.discount_percent > 0 && (
                                   <>
-                                    <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#AA9688', textDecoration: 'line-through', fontWeight: 300 }}>Rs. {item.product.price}</span>
+                                    <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#AA9688', textDecoration: 'line-through', fontWeight: 300 }}>Rs. {item.product.price}</span>
                                     <span className="badge badge-error" style={{ fontSize: '9px' }}>-{item.product.discount_percent}%</span>
                                   </>
                                 )}
@@ -619,13 +946,11 @@ export default function SkinAnalysis() {
                         )
                       })}
                     </div>
-
                     <div style={{ padding: '16px 24px', borderTop: '1px solid #EEE7DF', textAlign: 'center' }}>
                       <a href={`/products?suitable_skin_type=${result.analysis.skin_type}`}
-                        style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: '#7B6458', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'color 0.2s' }}
+                        style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#7B6458', textDecoration: 'none', textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'color 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.color = cfg.accent}
-                        onMouseLeave={e => e.currentTarget.style.color = '#7B6458'}
-                      >
+                        onMouseLeave={e => e.currentTarget.style.color = '#7B6458'}>
                         View all {cfg.label} products <ChevronRight size={13} strokeWidth={1.5} />
                       </a>
                     </div>
