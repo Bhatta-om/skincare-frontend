@@ -65,7 +65,6 @@ const REGISTER_CSS = `
   .auth-divider::before, .auth-divider::after {
     content: ''; flex: 1; height: 1px; background: #EEE7DF;
   }
-  /* OTP screen */
   .otp-grid { display: flex; gap: 10px; justify-content: center; }
   .otp-input {
     width: clamp(42px, 9vw, 52px);
@@ -129,7 +128,6 @@ const strengthMeta = [
   { label: 'Strong', color: '#4A7A57' },
 ]
 
-// Shared page logo
 const PageLogo = () => (
   <div style={{ textAlign: 'center', marginBottom: '36px' }}>
     <Link to="/" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
@@ -143,20 +141,20 @@ export default function Register() {
   const navigate                         = useNavigate()
   const { refreshUser, loginWithTokens } = useAuth()
 
-  const [step,          setStep]         = useState('register')
-  const [email,         setEmail]        = useState('')
-  const [form,          setForm]         = useState({ first_name: '', last_name: '', email: '', password: '', confirm_password: '', phone: '' })
-  const [errors,        setErrors]       = useState({})
-  const [loading,       setLoading]      = useState(false)
-  const [googleLoading, setGoogleLoading]= useState(false)
-  const [showPass,      setShowPass]     = useState(false)
-  const [showConfirm,   setShowConfirm]  = useState(false)
-  const [otp,           setOtp]          = useState(['','','','','',''])
-  const [otpError,      setOtpError]     = useState('')
-  const [otpLoading,    setOtpLoading]   = useState(false)
-  const [resending,     setResending]    = useState(false)
-  const [resendMsg,     setResendMsg]    = useState('')
-  const [timer,         setTimer]        = useState(60)
+  const [step,          setStep]          = useState('register')
+  const [email,         setEmail]         = useState('')
+  const [form,          setForm]          = useState({ first_name: '', last_name: '', email: '', password: '', confirm_password: '', phone: '' })
+  const [errors,        setErrors]        = useState({})
+  const [loading,       setLoading]       = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [showPass,      setShowPass]      = useState(false)
+  const [showConfirm,   setShowConfirm]   = useState(false)
+  const [otp,           setOtp]           = useState(['','','','','',''])
+  const [otpError,      setOtpError]      = useState('')
+  const [otpLoading,    setOtpLoading]    = useState(false)
+  const [resending,     setResending]     = useState(false)
+  const [resendMsg,     setResendMsg]     = useState('')
+  const [timer,         setTimer]         = useState(60)
   const inputRefs = useRef([])
 
   useEffect(() => {
@@ -172,32 +170,69 @@ export default function Register() {
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true); setErrors({})
       try {
-        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }).then(r => r.json())
-        const res = await api.post('/users/google/', { token: tokenResponse.access_token, email: userInfo.email, first_name: userInfo.given_name||'', last_name: userInfo.family_name||'' })
+        const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        }).then(r => r.json())
+        const res = await api.post('/users/google/', {
+          token:      tokenResponse.access_token,
+          email:      userInfo.email,
+          first_name: userInfo.given_name  || '',
+          last_name:  userInfo.family_name || '',
+        })
         loginWithTokens(res.data.tokens.access, res.data.tokens.refresh)
         await refreshUser(); navigate('/')
-      } catch (err) { setErrors({ general: err.response?.data?.error || 'Google sign up failed.' }) }
-      finally { setGoogleLoading(false) }
+      } catch (err) {
+        setErrors({ general: err.response?.data?.error || 'Google sign up failed.' })
+      } finally { setGoogleLoading(false) }
     },
     onError: () => setErrors({ general: 'Google sign up cancelled.' }),
     prompt: 'select_account',
   })
 
-  const handleChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); if (errors[e.target.name]) setErrors(p => ({ ...p, [e.target.name]: '' })) }
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+    if (errors[e.target.name]) setErrors(p => ({ ...p, [e.target.name]: '' }))
+  }
 
+  // ✅ FIX 1 — Block weak password on submit
   const handleRegister = async (e) => {
     e.preventDefault()
-    if (form.password !== form.confirm_password) { setErrors({ confirm_password: 'Passwords do not match' }); return }
+
+    // Password strength check — must be at least "Fair" (score >= 2)
+    if (strength < 2) {
+      setErrors({ password: 'Password is too weak. Add uppercase letters and numbers.' })
+      return
+    }
+
+    if (form.password !== form.confirm_password) {
+      setErrors({ confirm_password: 'Passwords do not match' })
+      return
+    }
+
     setLoading(true); setErrors({})
     try {
-      await api.post('/users/register/', { first_name: form.first_name, last_name: form.last_name, email: form.email, password: form.password, confirm_password: form.confirm_password, phone: form.phone })
+      await api.post('/users/register/', {
+        first_name:       form.first_name,
+        last_name:        form.last_name,
+        email:            form.email,
+        password:         form.password,
+        confirm_password: form.confirm_password,
+        phone:            form.phone,
+      })
       setEmail(form.email); setStep('otp'); setTimer(60)
     } catch (err) {
       const data = err.response?.data
       if (data && typeof data === 'object') {
         const fe = {}
-        if (data.error?.details) { Object.keys(data.error.details).forEach(k => { const v = data.error.details[k]; fe[k] = Array.isArray(v) ? v.join(' ') : v }) }
-        else { Object.keys(data).forEach(k => { const v = data[k]; fe[k] = Array.isArray(v) ? v.join(' ') : String(v) }) }
+        if (data.error?.details) {
+          Object.keys(data.error.details).forEach(k => {
+            const v = data.error.details[k]; fe[k] = Array.isArray(v) ? v.join(' ') : v
+          })
+        } else {
+          Object.keys(data).forEach(k => {
+            const v = data[k]; fe[k] = Array.isArray(v) ? v.join(' ') : String(v)
+          })
+        }
         setErrors(fe)
       } else setErrors({ general: 'Registration failed. Please try again.' })
     } finally { setLoading(false) }
@@ -206,15 +241,22 @@ export default function Register() {
   const handleOtpChange = (index, value) => {
     if (!/^\d*$/.test(value)) return
     const newOtp = [...otp]; newOtp[index] = value.slice(-1); setOtp(newOtp); setOtpError('')
-    if (value && index < 5) inputRefs.current[index+1]?.focus()
+    if (value && index < 5) inputRefs.current[index + 1]?.focus()
     if (newOtp.every(d => d !== '') && value) handleVerifyOtp(newOtp.join(''))
   }
-  const handleOtpKeyDown = (index, e) => { if (e.key === 'Backspace' && !otp[index] && index > 0) inputRefs.current[index-1]?.focus() }
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) inputRefs.current[index - 1]?.focus()
+  }
+
   const handleOtpPaste = (e) => {
     e.preventDefault()
-    const paste = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6)
-    if (paste.length === 6) { setOtp(paste.split('')); inputRefs.current[5]?.focus(); handleVerifyOtp(paste) }
+    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (paste.length === 6) {
+      setOtp(paste.split('')); inputRefs.current[5]?.focus(); handleVerifyOtp(paste)
+    }
   }
+
   const handleVerifyOtp = async (otpCode) => {
     const code = otpCode || otp.join('')
     if (code.length !== 6) { setOtpError('Please enter the complete 6-digit code.'); return }
@@ -228,15 +270,18 @@ export default function Register() {
       setOtp(['','','','','','']); inputRefs.current[0]?.focus()
     } finally { setOtpLoading(false) }
   }
+
   const handleResend = async () => {
     if (timer > 0) return
     setResending(true); setResendMsg('')
-    try { await api.post('/users/resend-otp/', { email }); setResendMsg('success'); setOtp(['','','','','','']); setTimer(60); inputRefs.current[0]?.focus() }
-    catch { setResendMsg('error') }
+    try {
+      await api.post('/users/resend-otp/', { email })
+      setResendMsg('success'); setOtp(['','','','','','']); setTimer(60); inputRefs.current[0]?.focus()
+    } catch { setResendMsg('error') }
     finally { setResending(false) }
   }
 
-  const submitBtn = (label, disabled) => ({
+  const submitBtnStyle = (disabled) => ({
     width: '100%', background: disabled ? '#C4B8B0' : '#16100C', color: '#FAF8F5', border: 'none',
     padding: '15px', cursor: disabled ? 'not-allowed' : 'pointer',
     fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400,
@@ -254,7 +299,6 @@ export default function Register() {
         <div className="reg-card" style={{ maxWidth: '400px', textAlign: 'center' }}>
           <PageLogo />
 
-          {/* Mail icon box */}
           <div style={{ width: '72px', height: '72px', border: '1px solid #E6DDD3', background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#B8895A', boxShadow: '0 4px 20px rgba(184,137,90,0.1)' }}>
             <Mail size={28} strokeWidth={1.5} />
           </div>
@@ -272,7 +316,6 @@ export default function Register() {
             <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '13px', color: '#B8895A', fontWeight: 400 }}>{email}</span>
           </div>
 
-          {/* OTP inputs */}
           <div className="otp-grid" onPaste={handleOtpPaste} style={{ marginBottom: '16px' }}>
             {otp.map((digit, i) => (
               <input key={i} ref={el => inputRefs.current[i] = el}
@@ -295,7 +338,7 @@ export default function Register() {
           {resendMsg === 'error'   && <div className="alert-error"   style={{ marginBottom: '12px' }}><AlertCircle  size={13} strokeWidth={1.5} />Failed to resend.</div>}
 
           <button onClick={() => handleVerifyOtp()} disabled={otpLoading || otp.some(d => d === '')}
-            style={submitBtn('Verify Email', otpLoading || otp.some(d => d === ''))}
+            style={submitBtnStyle(otpLoading || otp.some(d => d === ''))}
             onMouseEnter={e => { if (!otpLoading && !otp.some(d => d === '')) { e.currentTarget.style.background = '#2A1A14'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
             onMouseLeave={e => { if (!otpLoading && !otp.some(d => d === '')) { e.currentTarget.style.background = '#16100C'; e.currentTarget.style.transform = 'translateY(0)' } }}
           >
@@ -305,7 +348,7 @@ export default function Register() {
           <button onClick={handleResend} disabled={timer > 0 || resending}
             style={{ width: '100%', marginTop: '10px', background: 'transparent', border: `1px solid ${timer > 0 ? '#EEE7DF' : '#E6DDD3'}`, color: timer > 0 ? '#C4B8B0' : '#7B6458', padding: '13px', cursor: timer > 0 ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans',sans-serif", fontSize: '11.5px', fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.14em', transition: 'all 0.2s' }}
             onMouseEnter={e => { if (timer <= 0) e.currentTarget.style.borderColor = '#B8895A' }}
-            onMouseLeave={e => e.currentTarget.style.borderColor = timer > 0 ? '#EEE7DF' : '#E6DDD3' }
+            onMouseLeave={e => e.currentTarget.style.borderColor = timer > 0 ? '#EEE7DF' : '#E6DDD3'}
           >
             {resending ? 'Sending...' : timer > 0 ? `Resend in ${timer}s` : 'Resend Code'}
           </button>
@@ -334,7 +377,6 @@ export default function Register() {
         <div className="reg-card">
           <PageLogo />
 
-          {/* Heading */}
           <div style={{ marginBottom: '28px' }}>
             <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '28px', color: '#16100C', fontWeight: 400, marginBottom: '8px', letterSpacing: '-0.01em' }}>
               Create account
@@ -363,25 +405,34 @@ export default function Register() {
             </span>
           </div>
 
-          {/* Errors */}
-          {errors.general && <div className="alert-error" style={{ marginBottom: '16px' }}><AlertCircle size={13} strokeWidth={1.5} style={{ flexShrink: 0 }} />{errors.general}</div>}
+          {/* General errors */}
+          {errors.general && (
+            <div className="alert-error" style={{ marginBottom: '16px' }}>
+              <AlertCircle size={13} strokeWidth={1.5} style={{ flexShrink: 0 }} />{errors.general}
+            </div>
+          )}
           {errors.email?.toLowerCase().includes('already') && (
             <div className="alert-warning" style={{ marginBottom: '16px' }}>
               <AlertCircle size={13} strokeWidth={1.5} style={{ flexShrink: 0 }} />
-              <span>Email already exists.{' '}<Link to="/login" style={{ color: '#89670F', fontWeight: 400, textDecoration: 'underline' }}>Sign in instead</Link></span>
+              <span>Email already exists.{' '}
+                <Link to="/login" style={{ color: '#89670F', fontWeight: 400, textDecoration: 'underline' }}>Sign in instead</Link>
+              </span>
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-            {/* Name */}
+            {/* Name row */}
             <div className="reg-name-row">
-              {[{ name: 'first_name', label: 'First Name', ph: 'John', Icon: User }, { name: 'last_name', label: 'Last Name', ph: 'Doe', Icon: User }].map(f => (
+              {[
+                { name: 'first_name', label: 'First Name', ph: 'John',  Icon: User },
+                { name: 'last_name',  label: 'Last Name',  ph: 'Doe',   Icon: User },
+              ].map(f => (
                 <div key={f.name}>
                   <FieldLabel required>{f.label}</FieldLabel>
                   <IconInput icon={f.Icon}>
-                    <input type="text" name={f.name} value={form[f.name]} onChange={handleChange} placeholder={f.ph} required
+                    <input type="text" name={f.name} value={form[f.name]} onChange={handleChange}
+                      placeholder={f.ph} required
                       className={`auth-input ${errors[f.name] ? 'error' : ''}`}
                       onFocus={e => { if (!errors[f.name]) { e.target.style.borderColor = '#B8895A'; e.target.style.boxShadow = '0 0 0 3px rgba(184,137,90,0.08)' } }}
                       onBlur={e  => { if (!errors[f.name]) { e.target.style.borderColor = '#E6DDD3'; e.target.style.boxShadow = 'none' } }}
@@ -432,26 +483,39 @@ export default function Register() {
                   </button>
                 }
               >
-                <input type={showPass ? 'text' : 'password'} name="password" value={form.password} onChange={handleChange}
-                  placeholder="At least 8 characters" required
+                <input type={showPass ? 'text' : 'password'} name="password" value={form.password}
+                  onChange={handleChange} placeholder="At least 8 characters" required
                   className={`auth-input pr ${errors.password ? 'error' : ''}`}
                   onFocus={e => { e.target.style.borderColor = '#B8895A'; e.target.style.boxShadow = '0 0 0 3px rgba(184,137,90,0.08)' }}
                   onBlur={e  => { e.target.style.borderColor = errors.password ? '#963838' : '#E6DDD3'; e.target.style.boxShadow = 'none' }}
                 />
               </IconInput>
-              {/* Strength */}
+
+              {/* Strength meter */}
               {form.password && (
                 <div style={{ marginTop: '8px' }}>
                   <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
-                    {[0,1,2,3].map(i => <div key={i} style={{ flex: 1, height: '2px', background: i < strength && strengthInfo ? strengthInfo.color : '#E6DDD3', transition: 'background 0.3s', borderRadius: '1px' }} />)}
+                    {[0,1,2,3].map(i => (
+                      <div key={i} style={{ flex: 1, height: '2px', background: i < strength && strengthInfo ? strengthInfo.color : '#E6DDD3', transition: 'background 0.3s', borderRadius: '1px' }} />
+                    ))}
                   </div>
-                  {strengthInfo && <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: strengthInfo.color, fontWeight: 400 }}>{strengthInfo.label} password</p>}
+                  {strengthInfo && (
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: '11px', color: strengthInfo.color, fontWeight: 400 }}>
+                      {strengthInfo.label} password
+                      {/* ✅ FIX 1 — Show hint when password is too weak */}
+                      {strength < 2 && (
+                        <span style={{ color: '#AA9688', fontWeight: 300 }}>
+                          {' '}— add uppercase letters and numbers to continue
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
               )}
               <FieldError msg={errors.password} />
             </div>
 
-            {/* Confirm */}
+            {/* Confirm Password */}
             <div>
               <FieldLabel required>Confirm Password</FieldLabel>
               <IconInput icon={Lock}
@@ -465,8 +529,8 @@ export default function Register() {
                   </button>
                 }
               >
-                <input type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password} onChange={handleChange}
-                  placeholder="Repeat your password" required
+                <input type={showConfirm ? 'text' : 'password'} name="confirm_password" value={form.confirm_password}
+                  onChange={handleChange} placeholder="Repeat your password" required
                   className={`auth-input pr ${errors.confirm_password ? 'error' : form.confirm_password && form.confirm_password === form.password ? 'success' : ''}`}
                   onFocus={e => { e.target.style.borderColor = '#B8895A'; e.target.style.boxShadow = '0 0 0 3px rgba(184,137,90,0.08)' }}
                   onBlur={e  => { e.target.style.borderColor = errors.confirm_password ? '#963838' : form.confirm_password === form.password && form.confirm_password ? '#4A7A57' : '#E6DDD3'; e.target.style.boxShadow = 'none' }}
@@ -482,7 +546,7 @@ export default function Register() {
 
             {/* Submit */}
             <button type="submit" disabled={loading}
-              style={submitBtn('Create Account', loading)}
+              style={submitBtnStyle(loading)}
               onMouseEnter={e => { if (!loading) { e.currentTarget.style.background = '#2A1A14'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
               onMouseLeave={e => { if (!loading) { e.currentTarget.style.background = '#16100C'; e.currentTarget.style.transform = 'translateY(0)' } }}
               onMouseDown={e  => { if (!loading) e.currentTarget.style.transform = 'translateY(0)' }}
