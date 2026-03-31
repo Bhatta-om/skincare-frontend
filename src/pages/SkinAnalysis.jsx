@@ -7,13 +7,14 @@ import { useCart } from '../context/CartContext'
 import api from '../api/axios'
 import SEO from '../components/SEO'
 import toast from 'react-hot-toast'
-import { getProductImageUrl } from '../utils/productImage'
+import { getProductImageUrl } from '../utils/productImage' 
 import {
   Upload, ShoppingBag, Zap, FlaskConical,
   CheckCircle, AlertCircle, RotateCcw, Package,
   ChevronRight, Droplets, Leaf, Sun, Camera,
   UserX, Users, ImageOff, Lightbulb, Video,
-  VideoOff, RefreshCw, X,
+  VideoOff, RefreshCw, X, ChevronDown, Info,
+  Shield, Star, TrendingUp,
 } from 'lucide-react'
 
 const SKIN_CSS = `
@@ -44,6 +45,100 @@ const SKIN_CSS = `
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+  }
+  .tip-card {
+    background: #FFFFFF;
+    border: 1px solid #EEE7DF;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .tip-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transform: translateY(-1px);
+  }
+  .tip-header {
+    padding: 16px 20px;
+    background: #FAF8F5;
+    border-bottom: 1px solid #EEE7DF;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .tip-header:hover {
+    background: #F4EDE4;
+  }
+  .tip-content {
+    padding: 20px;
+  }
+  .tip-main {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: '#3A2820';
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 16px;
+  }
+  .info-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  .info-item.pro-tip {
+    background: #F0F7FF;
+    border-left: 3px solid #5A7FA6;
+  }
+  .info-item.caution {
+    background: #FFF5F5;
+    border-left: 3px solid #E53E3E;
+  }
+  .info-item.fact {
+    background: #F7FAFC;
+    border-left: 3px solid #718096;
+  }
+  .info-item.benefit {
+    background: #F0FFF4;
+    border-left: 3px solid #38A169;
+  }
+  .info-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .info-content {
+    flex: 1;
+  }
+  .info-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .info-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+  .collapsed .tip-content {
+    display: none;
+  }
+  .chevron-icon {
+    transition: transform 0.2s ease;
+  }
+  .collapsed .chevron-icon {
+    transform: rotate(-90deg);
   }
   .upload-tab-btn {
     flex: 1;
@@ -348,7 +443,6 @@ const WebcamCapture = ({ onCapture, onClose }) => {
     canvas.width  = video.videoWidth
     canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
-    // Mirror the captured image to match what user sees
     ctx.translate(canvas.width, 0)
     ctx.scale(-1, 1)
     ctx.drawImage(video, 0, 0)
@@ -358,7 +452,6 @@ const WebcamCapture = ({ onCapture, onClose }) => {
         onCapture(file)
       }
     }, 'image/jpeg', 0.92)
-    // Stop camera
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
     }
@@ -376,52 +469,29 @@ const WebcamCapture = ({ onCapture, onClose }) => {
         </div>
       ) : (
         <div>
-          {/* Camera viewfinder */}
           <div className="webcam-container" style={{ height: '320px', background: '#16100C' }}>
             <video ref={videoRef} className="webcam-video" autoPlay playsInline muted />
-
-            {/* Face guide oval */}
             <div className="webcam-overlay">
               <div className={`face-guide ${ready ? 'ready' : ''}`} />
             </div>
-
-            {/* Countdown overlay */}
             {countdown !== null && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(0,0,0,0.4)',
-                zIndex: 10,
-              }}>
-                <span style={{
-                  fontFamily: 'Playfair Display,serif',
-                  fontSize: '96px', fontWeight: 400,
-                  color: '#B8895A',
-                  textShadow: '0 2px 20px rgba(0,0,0,0.5)',
-                }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', zIndex: 10 }}>
+                <span style={{ fontFamily: 'Playfair Display,serif', fontSize: '96px', fontWeight: 400, color: '#B8895A', textShadow: '0 2px 20px rgba(0,0,0,0.5)' }}>
                   {countdown}
                 </span>
               </div>
             )}
-
-            {/* Close button */}
             <button className="webcam-close-btn" onClick={onClose} title="Close camera">
               <X size={16} strokeWidth={2} />
             </button>
-
-            {/* Flip camera button */}
             <button className="webcam-flip-btn" onClick={flipCamera} title="Flip camera">
               <RefreshCw size={16} strokeWidth={1.5} />
             </button>
-
-            {/* Capture button */}
             {ready && countdown === null && (
               <button className="webcam-capture-btn" onClick={startCountdown} title="Take photo">
                 <Camera size={24} strokeWidth={1.5} color="#FFFFFF" />
               </button>
             )}
-
-            {/* Loading indicator */}
             {!ready && !error && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
                 <div style={{ width: '32px', height: '32px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#B8895A', borderRadius: '50%', animation: 'luxurySpinner 0.9s linear infinite' }} />
@@ -429,15 +499,9 @@ const WebcamCapture = ({ onCapture, onClose }) => {
               </div>
             )}
           </div>
-
-          {/* Camera tips below viewfinder */}
           {ready && (
             <div style={{ background: '#FAF8F5', border: '1px solid #E6DDD3', borderTop: 'none', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              {[
-                'Center your face in the oval',
-                'Good lighting — face a window',
-                'Hold camera steady',
-              ].map((tip, i) => (
+              {['Center your face in the oval','Good lighting — face a window','Hold camera steady'].map((tip, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <CheckCircle size={10} strokeWidth={1.5} style={{ color: '#B8895A', flexShrink: 0 }} />
                   <span style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#7B6458', fontWeight: 300 }}>{tip}</span>
@@ -448,13 +512,31 @@ const WebcamCapture = ({ onCapture, onClose }) => {
               </span>
             </div>
           )}
-
-          {/* Hidden canvas for capturing */}
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
       )}
     </div>
   )
+}
+
+// ════════════════════════════════════════════════════════════
+// INFO CATEGORIZATION HELPER
+// ════════════════════════════════════════════════════════════
+const categorizeWarning = (warning, stepKey) => {
+  const cautionKeywords = ['avoid', 'never', 'do not', 'stop', 'harsh', 'damage', 'harmful', 'irritation', 'allergic', 'burn', 'bleach', 'corrosive', 'toxic']
+  const benefitKeywords = ['helps', 'improves', 'better', 'enhances', 'powerful', 'effective', 'best', 'optimal', 'preserves', 'maintains']
+  const factKeywords = ['skin loses', 'collagen', 'produces', 'contains', 'research', 'study', 'percent', 'after age', 'per year']
+  const warningLower = warning.toLowerCase()
+  if (cautionKeywords.some(keyword => warningLower.includes(keyword))) {
+    return { type: 'caution', icon: <AlertCircle size={14} />, color: '#E53E3E', bgColor: '#FFF5F5', label: 'Caution' }
+  }
+  if (benefitKeywords.some(keyword => warningLower.includes(keyword))) {
+    return { type: 'benefit', icon: <Star size={14} />, color: '#38A169', bgColor: '#F0FFF4', label: 'Benefit' }
+  }
+  if (factKeywords.some(keyword => warningLower.includes(keyword))) {
+    return { type: 'fact', icon: <Info size={14} />, color: '#718096', bgColor: '#F7FAFC', label: 'Did You Know?' }
+  }
+  return { type: 'pro-tip', icon: <TrendingUp size={14} />, color: '#5A7FA6', bgColor: '#F0F7FF', label: 'Pro Tip' }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -465,7 +547,6 @@ export default function SkinAnalysis() {
   const { fetchCartCount } = useCart()
   const navigate           = useNavigate()
 
-  // ── Upload state ──
   const [image,     setImage]     = useState(null)
   const [preview,   setPreview]   = useState(null)
   const [age,       setAge]       = useState('')
@@ -477,10 +558,9 @@ export default function SkinAnalysis() {
   const [addingId,  setAddingId]  = useState(null)
   const [dragOver,  setDragOver]  = useState(false)
 
-  // ── Tab state: 'upload' | 'camera' ──
-  const [activeTab, setActiveTab]       = useState('upload')
-  const [showWebcam, setShowWebcam]     = useState(false)
-  const [captureSource, setCaptureSource] = useState('') // 'upload' | 'camera'
+  const [activeTab, setActiveTab]         = useState('upload')
+  const [showWebcam, setShowWebcam]       = useState(false)
+  const [captureSource, setCaptureSource] = useState('')
 
   const fileRef = useRef()
 
@@ -499,7 +579,7 @@ export default function SkinAnalysis() {
     setShowWebcam(false)
     setCaptureSource('camera')
     handleImage(file)
-    setActiveTab('upload') // switch to upload tab to show preview
+    setActiveTab('upload')
   }
 
   const openWebcam = () => {
@@ -654,7 +734,6 @@ export default function SkinAnalysis() {
             <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', maxWidth: '640px', margin: '0 auto' }}>
               <div style={{ height: '2px', background: 'linear-gradient(to right,#B8895A,#D4A96A,#B8895A)' }} />
 
-              {/* Form header */}
               <div style={{ padding: 'clamp(16px,3vw,28px) clamp(16px,3vw,32px)', borderBottom: '1px solid #EEE7DF', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '40px', height: '40px', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B8895A', background: '#FDFAF7', flexShrink: 0 }}>
                   <FlaskConical size={18} strokeWidth={1.5} />
@@ -673,7 +752,6 @@ export default function SkinAnalysis() {
                     Face Photo <span style={{ color: '#963838' }}>*</span>
                   </label>
 
-                  {/* Tab switcher: Upload | Camera */}
                   {!preview && (
                     <div style={{ display: 'flex', borderBottom: '1px solid #E6DDD3', marginTop: '8px', marginBottom: '0' }}>
                       <button
@@ -695,7 +773,6 @@ export default function SkinAnalysis() {
                     </div>
                   )}
 
-                  {/* ── UPLOAD TAB ── */}
                   {(activeTab === 'upload' || preview) && !showWebcam && (
                     <>
                       <div
@@ -759,12 +836,8 @@ export default function SkinAnalysis() {
                     </>
                   )}
 
-                  {/* ── CAMERA TAB ── */}
                   {activeTab === 'camera' && showWebcam && !preview && (
-                    <WebcamCapture
-                      onCapture={handleWebcamCapture}
-                      onClose={closeWebcam}
-                    />
+                    <WebcamCapture onCapture={handleWebcamCapture} onClose={closeWebcam} />
                   )}
                 </div>
 
@@ -777,11 +850,11 @@ export default function SkinAnalysis() {
                   <div>
                     <label className="input-label">Gender <span style={{ color: '#963838' }}>*</span></label>
                     <div style={{ marginTop: '8px' }}>
+                      {/* ── Only Male / Female — matches backend choices exactly ── */}
                       <LuxSelect value={gender} onChange={e => setGender(e.target.value)}>
                         <option value="">Select gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
-                        <option value="other">Other</option>
                       </LuxSelect>
                     </div>
                   </div>
@@ -800,7 +873,6 @@ export default function SkinAnalysis() {
                   </div>
                 </div>
 
-                {/* Error block */}
                 {error && <ErrorBlock errorCode={errorCode} errorMsg={error} />}
 
                 <button type="submit" disabled={loading} className="btn-primary"
@@ -812,7 +884,7 @@ export default function SkinAnalysis() {
             </div>
           )}
 
-          {/* ── RESULTS (unchanged from original) ── */}
+          {/* ── RESULTS ── */}
           {result && cfg && (
             <div id="result-section" style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
@@ -832,56 +904,64 @@ export default function SkinAnalysis() {
                 </div>
               </div>
 
-              {/* Tips */}
-              <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3' }}>
-                <div style={{ padding: '18px 24px', borderBottom: '1px solid #EEE7DF' }}>
-                  <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '18px', color: '#16100C', fontWeight: 400 }}>Personalized Skincare Tips</h3>
-                  <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', marginTop: '3px', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
+              {/* Tips / Routine */}
+              <div style={{ background: '#FFFFFF', border: '1px solid #E6DDD3', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #EEE7DF', background: '#FAF8F5' }}>
+                  <h3 style={{ fontFamily: 'Playfair Display,serif', fontSize: '20px', color: '#16100C', fontWeight: 400, marginBottom: '4px' }}>Personalized Skincare Routine</h3>
+                  <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', color: '#AA9688', fontWeight: 300 }}>Based on your {cfg.label.toLowerCase()} · age {result.analysis.age} · {result.analysis.gender}</p>
                 </div>
-                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: 'clamp(16px,3vw,24px) clamp(16px,3vw,28px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {getPersonalizedTips(result.analysis.skin_type, result.analysis.age, result.analysis.gender).map((item, i) => {
                     const allProducts  = result.recommendations?.products || []
                     const stepProducts = getProductsForStep(item.ingredients || [], allProducts)
+                    const infoCategory = categorizeWarning(item.warning, item.stepKey)
                     return (
-                      <div key={i} style={{ border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
-                        <div style={{ padding: '16px 16px 0 16px' }}>
-                          <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 500, marginBottom: '8px' }}>{item.step}</p>
-                          <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12.5px', color: '#3A2820', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>{item.tip}</p>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(150,56,56,0.05)', padding: '8px 10px', borderLeft: '2px solid #963838', marginBottom: stepProducts.length > 0 ? '14px' : '16px' }}>
-                            <AlertCircle size={11} strokeWidth={1.5} style={{ color: '#963838', flexShrink: 0, marginTop: '2px' }} />
-                            <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#963838', lineHeight: 1.6, fontWeight: 300 }}>{item.warning}</p>
-                          </div>
-                        </div>
-                        {stepProducts.length > 0 && (
-                          <div style={{ borderTop: '1px solid #EEE7DF', padding: '12px 16px', background: '#FFFFFF' }}>
-                            <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.16em', color: cfg.accent, fontWeight: 500, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <ShoppingBag size={10} strokeWidth={1.5} /> Matched products for this step
-                            </p>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              {stepProducts.map((rec, j) => (
-                                <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', border: '1px solid #EEE7DF', background: '#FDFAF7' }}>
-                                  <div style={{ width: '44px', height: '44px', flexShrink: 0, background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                    {rec.product.image ? <img src={getProductImageUrl(rec.product.image)} alt={rec.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={16} strokeWidth={1} style={{ color: '#D4C4B0' }} />}
-                                  </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 400 }}>{rec.product.brand}</p>
-                                    <a href={`/products/${rec.product.slug}`} style={{ textDecoration: 'none' }}>
-                                      <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '12px', color: '#16100C', fontWeight: 400, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.product.name}</p>
-                                    </a>
-                                    <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#7B6458', fontStyle: 'italic', fontWeight: 300, marginTop: '2px', lineHeight: 1.4 }}>{rec.reasoning?.split('.')[0]}.</p>
-                                  </div>
-                                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                                    <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '13px', color: '#16100C', fontWeight: 400 }}>Rs. {rec.product.discounted_price}</p>
-                                    <button onClick={() => addToCart(rec.product.id)} disabled={addingId === rec.product.id}
-                                      style={{ marginTop: '4px', background: cfg.accent, color: '#FFFFFF', border: 'none', padding: '4px 10px', fontFamily: 'DM Sans,sans-serif', fontSize: '9.5px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', opacity: addingId === rec.product.id ? 0.6 : 1 }}>
-                                      {addingId === rec.product.id ? '...' : 'Add'}
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                      <div key={i} className="tip-card" id={`tip-card-${i}`}>
+                        <div className="tip-header" onClick={() => { document.getElementById(`tip-card-${i}`).classList.toggle('collapsed') }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: cfg.accentLight, border: `1px solid ${cfg.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.accent, fontSize: '14px', fontWeight: '600' }}>
+                              {i + 1}
+                            </div>
+                            <div>
+                              <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.14em', color: cfg.accent, fontWeight: 600, marginBottom: '2px' }}>{item.step}</p>
+                              <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '11px', color: '#7B6458', fontWeight: 300 }}>{item.tip.substring(0, 60)}{item.tip.length > 60 ? '...' : ''}</p>
                             </div>
                           </div>
-                        )}
+                          <ChevronDown size={18} strokeWidth={1.5} style={{ color: '#AA9688' }} className="chevron-icon" />
+                        </div>
+                        <div className="tip-content">
+                          <div className="tip-main">{item.tip}</div>
+                          {stepProducts.length > 0 && (
+                            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #EEE7DF' }}>
+                              <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.16em', color: cfg.accent, fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <ShoppingBag size={12} strokeWidth={1.5} /> Matched products for this step
+                              </p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {stepProducts.map((rec, j) => (
+                                  <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', border: '1px solid #EEE7DF', background: '#FDFAF7', borderRadius: '6px' }}>
+                                    <div style={{ width: '48px', height: '48px', flexShrink: 0, background: '#F4EDE4', border: '1px solid #E6DDD3', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '6px' }}>
+                                      {rec.product.image ? <img src={getProductImageUrl(rec.product.image)} alt={rec.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={18} strokeWidth={1} style={{ color: '#D4C4B0' }} />}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#B8895A', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500, marginBottom: '2px' }}>{rec.product.brand}</p>
+                                      <a href={`/products/${rec.product.slug}`} style={{ textDecoration: 'none' }}>
+                                        <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '13px', color: '#16100C', fontWeight: 400, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.product.name}</p>
+                                      </a>
+                                      <p style={{ fontFamily: 'DM Sans,sans-serif', fontSize: '10px', color: '#7B6458', fontStyle: 'italic', fontWeight: 300, marginTop: '2px', lineHeight: 1.4 }}>{rec.reasoning?.split('.')[0]}.</p>
+                                    </div>
+                                    <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                                      <p style={{ fontFamily: 'Playfair Display,serif', fontSize: '14px', color: '#16100C', fontWeight: 400, marginBottom: '4px' }}>Rs. {rec.product.discounted_price}</p>
+                                      <button onClick={() => addToCart(rec.product.id)} disabled={addingId === rec.product.id}
+                                        style={{ background: cfg.accent, color: '#FFFFFF', border: 'none', padding: '6px 12px', fontFamily: 'DM Sans,sans-serif', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', borderRadius: '4px', opacity: addingId === rec.product.id ? 0.6 : 1, transition: 'all 0.2s ease' }}>
+                                        {addingId === rec.product.id ? '...' : 'Add'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
