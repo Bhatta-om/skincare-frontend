@@ -76,6 +76,15 @@ const SKIN_CSS = `
   }
   .tip-content {
     padding: 20px;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    opacity: 1;
+  }
+  .tip-card.collapsed .tip-content {
+    max-height: 0;
+    padding: 0 20px;
+    opacity: 0;
   }
   .tip-main {
     font-family: 'DM Sans', sans-serif;
@@ -135,13 +144,13 @@ const SKIN_CSS = `
     line-height: 1.6;
     font-weight: 300;
   }
-  .collapsed .tip-content {
-    display: none;
-  }
   .chevron-icon {
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
   }
-  .collapsed .chevron-icon {
+  .tip-card.collapsed .chevron-icon {
+    transform: rotate(0deg);
+  }
+  .tip-card:not(.collapsed) .chevron-icon {
     transform: rotate(-90deg);
   }
   .upload-tab-btn {
@@ -654,6 +663,9 @@ export default function SkinAnalysis() {
   const [activeTab, setActiveTab]         = useState('upload')
   const [showWebcam, setShowWebcam]       = useState(false)
   const [captureSource, setCaptureSource] = useState('')
+  
+  // NEW STATE: Track which tip cards are expanded (by index)
+  const [expandedCards, setExpandedCards] = useState(new Set())
 
   const fileRef = useRef()
 
@@ -717,6 +729,8 @@ export default function SkinAnalysis() {
       })
 
       setResult(res.data)
+      // RESET expanded cards when new result arrives (all collapsed by default)
+      setExpandedCards(new Set())
       setTimeout(() => document.getElementById('result-section')?.scrollIntoView({ behavior: 'smooth' }), 100)
 
     } catch (err) {
@@ -727,6 +741,19 @@ export default function SkinAnalysis() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // NEW FUNCTION: Toggle card expansion
+  const toggleCardExpanded = (index) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
   }
 
   const addToCart = async (productId) => {
@@ -749,6 +776,7 @@ export default function SkinAnalysis() {
     setResult(null); setImage(null); setPreview(null)
     setAge(''); setGender(''); setError(''); setErrorCode('')
     setCaptureSource(''); setShowWebcam(false); setActiveTab('upload')
+    setExpandedCards(new Set())
   }
 
   const cfg = result ? getSkinConfig(result.analysis.skin_type) : null
@@ -1018,9 +1046,17 @@ export default function SkinAnalysis() {
                     const allProducts  = result.recommendations?.products || []
                     const stepProducts = getProductsForStep(item.ingredients || [], allProducts)
                     const infoCategory = categorizeWarning(item.warning, item.stepKey)
+                    const isExpanded = expandedCards.has(i)
+                    
                     return (
-                      <div key={i} className="tip-card" id={`tip-card-${i}`}>
-                        <div className="tip-header" onClick={() => { document.getElementById(`tip-card-${i}`).classList.toggle('collapsed') }}>
+                      <div 
+                        key={i} 
+                        className={`tip-card ${!isExpanded ? 'collapsed' : ''}`}
+                      >
+                        <div 
+                          className="tip-header" 
+                          onClick={() => toggleCardExpanded(i)}
+                        >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: cfg.accentLight, border: `1px solid ${cfg.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cfg.accent, fontSize: '14px', fontWeight: '600' }}>
                               {i + 1}
