@@ -1,4 +1,4 @@
-// src/pages/SkinAnalysis.jsx — Mobile Responsive + Webcam Feature Added
+// src/pages/SkinAnalysis.jsx — Mobile Responsive + Webcam Feature + Fixed Age/Gender Fields
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getPersonalizedTips, getProductsForStep } from '../utils/skinTips'
@@ -45,6 +45,10 @@ const SKIN_CSS = `
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
+  }
+  .skin-form-row > div {
+    display: flex;
+    flex-direction: column;
   }
   .tip-card {
     background: #FFFFFF;
@@ -265,12 +269,96 @@ const SKIN_CSS = `
   .webcam-close-btn:hover {
     background: rgba(150,56,56,0.7);
   }
+  
+  /* Input Styles */
+  .input-luxury {
+    width: 100%;
+    height: 48px;
+    padding: 12px 14px;
+    border: 1px solid #E6DDD3;
+    background: #FFFFFF;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #16100C;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+  .input-luxury:hover {
+    border-color: #D4C4B0;
+  }
+  .input-luxury:focus {
+    outline: none;
+    border-color: #B8895A;
+    box-shadow: 0 0 0 3px rgba(184,137,90,0.1);
+  }
+  .input-luxury::placeholder {
+    color: #AA9688;
+  }
+  
+  .input-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #16100C;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* Gender Select Wrapper */
+  .gender-select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  .gender-select-wrapper select {
+    width: 100%;
+    height: 48px;
+    padding: 12px 36px 12px 14px;
+    border: 1px solid #E6DDD3;
+    background: #FFFFFF;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #16100C;
+    border-radius: 4px;
+    cursor: pointer;
+    appearance: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+  }
+  .gender-select-wrapper select:hover {
+    border-color: #D4C4B0;
+  }
+  .gender-select-wrapper select:focus {
+    outline: none;
+    border-color: #B8895A;
+    box-shadow: 0 0 0 3px rgba(184,137,90,0.1);
+  }
+  .gender-select-wrapper select option {
+    color: #16100C;
+    background: #FFFFFF;
+    padding: 8px;
+  }
+  .gender-select-wrapper .chevron-select {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #AA9688;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   @media (max-width: 768px) {
     .skin-hero-grid { grid-template-columns: 1fr; gap: 24px; }
     .skin-legend { display: none; }
     .skin-how-grid { grid-template-columns: 1fr; }
     .skin-tips-grid { grid-template-columns: 1fr; }
     .skin-photo-tips { grid-template-columns: 1fr; }
+    .skin-form-row { grid-template-columns: 1fr; }
     .face-guide { width: 160px; height: 200px; }
   }
   @media (max-width: 480px) {
@@ -326,12 +414,17 @@ const ERROR_CONFIG = {
   },
 }
 
-const LuxSelect = ({ value, onChange, children }) => (
-  <div style={{ position: 'relative' }}>
-    <select value={value} onChange={onChange} className="input-luxury" style={{ paddingRight: '36px', cursor: 'pointer', appearance: 'none' }}>
+// ════════════════════════════════════════════════════════════
+// LUXURY SELECT COMPONENT (Updated)
+// ════════════════════════════════════════════════════════════
+const LuxSelect = ({ value, onChange, children, label }) => (
+  <div className="gender-select-wrapper">
+    <select value={value} onChange={onChange} className="input-luxury">
       {children}
     </select>
-    <ChevronRight size={13} strokeWidth={1.5} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%) rotate(90deg)', color: '#AA9688', pointerEvents: 'none' }} />
+    <div className="chevron-select">
+      <ChevronDown size={16} strokeWidth={1.5} />
+    </div>
   </div>
 )
 
@@ -841,16 +934,26 @@ export default function SkinAnalysis() {
                   )}
                 </div>
 
-                {/* Age + Gender */}
+                {/* ══════════════════════════════════════════════════════════ */}
+                {/* Age + Gender Fields — UPDATED VERSION */}
+                {/* ══════════════════════════════════════════════════════════ */}
                 <div className="skin-form-row" style={{ marginBottom: '20px' }}>
                   <div>
                     <label className="input-label">Age <span style={{ color: '#963838' }}>*</span></label>
-                    <input type="number" value={age} onChange={e => setAge(e.target.value)} placeholder="13 – 80" min="13" max="80" className="input-luxury" style={{ marginTop: '8px' }} />
+                    <input 
+                      type="number" 
+                      value={age} 
+                      onChange={e => setAge(e.target.value)} 
+                      placeholder="13 – 80" 
+                      min="13" 
+                      max="80" 
+                      className="input-luxury"
+                      style={{ marginTop: '8px' }}
+                    />
                   </div>
                   <div>
                     <label className="input-label">Gender <span style={{ color: '#963838' }}>*</span></label>
                     <div style={{ marginTop: '8px' }}>
-                      {/* ── Only Male / Female — matches backend choices exactly ── */}
                       <LuxSelect value={gender} onChange={e => setGender(e.target.value)}>
                         <option value="">Select gender</option>
                         <option value="male">Male</option>
