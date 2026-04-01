@@ -148,10 +148,10 @@ const SKIN_CSS = `
     transition: transform 0.3s ease;
   }
   .tip-card.collapsed .chevron-icon {
-    transform: rotate(0deg);
+    transform: rotate(-90deg);
   }
   .tip-card:not(.collapsed) .chevron-icon {
-    transform: rotate(-90deg);
+    transform: rotate(0deg);
   }
   .upload-tab-btn {
     flex: 1;
@@ -984,6 +984,7 @@ export default function SkinAnalysis() {
                       <div 
                         key={i} 
                         className="tip-card collapsed"
+                        id={`tip-card-${i}`}
                       >
                         <div 
                           className="tip-header" 
